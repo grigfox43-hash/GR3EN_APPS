@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Minifier | xGR3ENx Tools</title>
+  
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="font/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/modern.css">
+  <link rel="stylesheet" href="css/tools.css">
+  
+  <!-- Terser for JS minification client-side -->
+  <script src="https://cdn.jsdelivr.net/npm/terser/dist/bundle.min.js"></script>
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header scrolled">
+    <div class="site-container">
+      <div class="nav-wrapper">
+        <a href="index.html" class="brand-logo-link" title="xGR3ENx Tools">
+          <img class="brand-logo-img" src="img/logo.svg" alt="xGR3ENx Logo" width="44" height="44">
+          <div class="brand-logo-text">
+            xGR3ENx
+            <span>TOOLS</span>
+          </div>
+        </a>
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-item-link">НА ГЛАВНУЮ</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding-top: 100px;">
+    <section class="section-wrapper" style="padding-top: 2rem;">
+      <div class="site-container">
+        
+        <div class="tool-header">
+          <h1>CSS / JS MINIFIER</h1>
+          <p>Локальное сжатие кода. Удаляет комментарии, пробелы и оптимизирует переменные в JS (через Terser).</p>
+        </div>
+
+        <div class="tool-layout">
+          <!-- Settings Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">УПРАВЛЕНИЕ</h3>
+            
+            <button id="minifyJsBtn" class="btn-cyber btn-cyber-primary tool-btn" style="width: 100%; margin-bottom: 1rem;">Сжать JS</button>
+            <button id="minifyCssBtn" class="btn-cyber btn-cyber-outline tool-btn" style="width: 100%; margin-bottom: 1rem;">Сжать CSS</button>
+            
+            <div id="statsBox" style="display:none; margin-top: 2rem; background: rgba(0,0,0,0.4); padding: 1rem; border-radius: 4px; border: 1px solid var(--color-primary);">
+              <h4 style="color: #fff; margin-bottom: 0.5rem; font-size: 0.9rem;">РЕЗУЛЬТАТ:</h4>
+              <p style="color: var(--color-text-muted); font-size: 0.85rem;">Оригинал: <span id="origBytes" style="color:#fff;"></span></p>
+              <p style="color: var(--color-text-muted); font-size: 0.85rem;">Сжато: <span id="optBytes" style="color:var(--color-primary);"></span></p>
+              <p style="color: var(--color-text-muted); font-size: 0.85rem; font-weight: bold; margin-top: 0.5rem;">Экономия: <span id="savePercent" style="color:var(--color-primary);"></span></p>
+            </div>
+            
+            <div class="log-box" id="errorLog" style="height: 120px; display:none; margin-top: 1rem; padding: 0.5rem; border-color: #ff3333;"></div>
+          </aside>
+
+          <!-- Main Workspace -->
+          <div class="tool-main" style="display: flex; flex-direction: column; gap: 1rem;">
+            
+            <div class="form-group" style="flex: 1; display: flex; flex-direction: column; margin-bottom: 0;">
+              <label class="form-label">Исходный код:</label>
+              <textarea id="inputCode" class="form-input" style="flex: 1; min-height: 250px; font-family: monospace; resize: vertical;" placeholder="Вставьте ваш JS или CSS код сюда..."></textarea>
+            </div>
+
+            <div class="form-group" style="flex: 1; display: flex; flex-direction: column; margin-bottom: 0;">
+              <label class="form-label" style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <span>Минифицированный код:</span>
+                <button id="copyBtn" class="btn-cyber btn-cyber-outline" style="padding: 0.3rem 1rem; font-size: 1rem; border-radius: 4px; display: none;">Скопировать</button>
+              </label>
+              <textarea id="outputCode" class="form-input" style="flex: 1; min-height: 250px; font-family: monospace; resize: vertical; background: rgba(0,0,0,0.6);" readonly placeholder="Здесь появится сжатый код..."></textarea>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const inputCode = document.getElementById('inputCode');
+    const outputCode = document.getElementById('outputCode');
+    const minifyJsBtn = document.getElementById('minifyJsBtn');
+    const minifyCssBtn = document.getElementById('minifyCssBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const statsBox = document.getElementById('statsBox');
+    const origBytes = document.getElementById('origBytes');
+    const optBytes = document.getElementById('optBytes');
+    const savePercent = document.getElementById('savePercent');
+    const errorLog = document.getElementById('errorLog');
+
+    function logError(msg) {
+      errorLog.style.display = 'block';
+      errorLog.innerHTML = `<div style="color:#ffcccc; font-size:0.85rem; font-family:monospace; word-break:break-all;">${msg}</div>`;
+      statsBox.style.display = 'none';
+    }
+
+    function showStats(orig, min) {
+      const origSize = new Blob([orig]).size;
+      const minSize = new Blob([min]).size;
+      const percent = origSize > 0 ? ((origSize - minSize) / origSize * 100).toFixed(1) : 0;
+      
+      origBytes.textContent = (origSize / 1024).toFixed(2) + ' KB';
+      optBytes.textContent = (minSize / 1024).toFixed(2) + ' KB';
+      savePercent.textContent = percent + '%';
+      statsBox.style.display = 'block';
+    }
+
+    minifyJsBtn.addEventListener('click', async () => {
+      errorLog.style.display = 'none';
+      const code = inputCode.value;
+      if (!code.trim()) return;
+      
+      try {
+        if (typeof Terser === 'undefined') {
+          throw new Error('Terser library failed to load.');
+        }
+        
+        outputCode.value = "Сжатие...";
+        
+        // Terser is loaded globally from CDN
+        const result = await Terser.minify(code, {
+          compress: true,
+          mangle: true
+        });
+        
+        if (result.error) {
+          throw result.error;
+        }
+        
+        outputCode.value = result.code;
+        showStats(code, result.code);
+        copyBtn.style.display = 'inline-block';
+        
+      } catch (e) {
+        logError(e.message || e);
+        outputCode.value = "";
+      }
+    });
+
+    minifyCssBtn.addEventListener('click', () => {
+      errorLog.style.display = 'none';
+      let code = inputCode.value;
+      if (!code.trim()) return;
+      
+      try {
+        // Basic CSS minification (regex)
+        code = code.replace(/\/\*[\s\S]*?\*\//g, ''); // remove comments
+        code = code.replace(/\s+/g, ' '); // collapse whitespace
+        code = code.replace(/\s*([\{\}\:\;\,])\s*/g, '$1'); // remove space around separators
+        code = code.replace(/;\}/g, '}'); // remove trailing semicolon
+        
+        outputCode.value = code;
+        showStats(inputCode.value, code);
+        copyBtn.style.display = 'inline-block';
+      } catch (e) {
+        logError(e.message || e);
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      outputCode.select();
+      document.execCommand('copy');
+      copyBtn.textContent = 'Скопировано!';
+      setTimeout(() => copyBtn.textContent = 'Скопировать', 2000);
+    });
+  </script>
+</body>
+</html>

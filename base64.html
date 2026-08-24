@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Base64 Asset Encoder | xGR3ENx Tools</title>
+  
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="font/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/modern.css">
+  <link rel="stylesheet" href="css/tools.css">
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header scrolled">
+    <div class="site-container">
+      <div class="nav-wrapper">
+        <a href="index.html" class="brand-logo-link" title="xGR3ENx Tools">
+          <img class="brand-logo-img" src="img/logo.svg" alt="xGR3ENx Logo" width="44" height="44">
+          <div class="brand-logo-text">
+            xGR3ENx
+            <span>TOOLS</span>
+          </div>
+        </a>
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-item-link">НА ГЛАВНУЮ</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding-top: 100px;">
+    <section class="section-wrapper" style="padding-top: 2rem;">
+      <div class="site-container">
+        
+        <div class="tool-header">
+          <h1>BASE64 ASSET ENCODER</h1>
+          <p>Быстрое преобразование любых файлов (картинки, шрифты, аудио) в строку Base64 (Data URI).</p>
+        </div>
+
+        <div class="tool-layout">
+          <!-- Main Workspace -->
+          <div class="tool-main" style="grid-column: 1 / -1; max-width: 800px; margin: 0 auto; width: 100%;">
+            
+            <div id="dropzone" class="dropzone">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 13l-2 2 2 2"></path><path d="M14 17l2-2-2-2"></path>
+              </svg>
+              <p>Перетащите файл сюда<br><span style="font-size:0.9rem;">или нажмите для выбора</span></p>
+              <input type="file" id="fileInput" style="display:none;">
+            </div>
+
+            <div style="margin-top: 2rem;">
+              <h3 style="color: #fff; margin-bottom: 0.5rem; font-family: var(--font-display); font-size: 1.2rem;">ДЕТАЛИ ФАЙЛА:</h3>
+              <p id="fileDetails" style="color: var(--color-text-muted); margin-bottom: 1rem;">Нет файла</p>
+              
+              <div class="form-group">
+                <label class="form-label" style="display:flex; justify-content:space-between; align-items:flex-end;">
+                  <span>Base64 (Data URI) Строка:</span>
+                  <button id="copyBtn" class="btn-cyber btn-cyber-outline" style="padding: 0.3rem 1rem; font-size: 1rem; border-radius: 4px; display: none;">Скопировать</button>
+                </label>
+                <textarea id="outputArea" class="form-input" style="min-height: 200px; resize: vertical; word-break: break-all;" readonly placeholder="Здесь появится результат..."></textarea>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const outputArea = document.getElementById('outputArea');
+    const fileDetails = document.getElementById('fileDetails');
+    const copyBtn = document.getElementById('copyBtn');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    copyBtn.addEventListener('click', () => {
+      outputArea.select();
+      document.execCommand('copy');
+      copyBtn.textContent = 'Скопировано!';
+      setTimeout(() => copyBtn.textContent = 'Скопировать', 2000);
+    });
+
+    function handleFile(file) {
+      fileDetails.innerHTML = `<span style="color:#fff">${file.name}</span> • ${(file.size / 1024).toFixed(2)} KB • ${file.type || 'unknown'}`;
+      outputArea.value = 'Кодирование...';
+      copyBtn.style.display = 'none';
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        outputArea.value = e.target.result;
+        copyBtn.style.display = 'inline-block';
+      };
+      reader.readAsDataURL(file);
+    }
+  </script>
+</body>
+</html>

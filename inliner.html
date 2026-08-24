@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Playable Inliner | xGR3ENx Tools</title>
+  
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="font/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/modern.css">
+  <link rel="stylesheet" href="css/tools.css">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+
+<body>
+  <header class="site-header scrolled">
+    <div class="site-container">
+      <div class="nav-wrapper">
+        <a href="index.html" class="brand-logo-link" title="xGR3ENx Tools">
+          <img class="brand-logo-img" src="img/logo.svg" alt="xGR3ENx Logo" width="44" height="44">
+          <div class="brand-logo-text">
+            xGR3ENx
+            <span>TOOLS</span>
+          </div>
+        </a>
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-item-link">НА ГЛАВНУЮ</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding-top: 100px;">
+    <section class="section-wrapper" style="padding-top: 2rem;">
+      <div class="site-container">
+        
+        <div class="tool-header">
+          <h1>PLAYABLE INLINER</h1>
+          <p>Автоматическая упаковка всех ресурсов (HTML, JS, CSS, картинки) в один `index.html` (Base64) для отправки в рекламные сети.</p>
+        </div>
+
+        <div class="tool-layout">
+          <!-- Settings Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">ЗАГРУЗКА</h3>
+            
+            <div id="dropzone" class="dropzone" style="min-height: 120px; padding: 1rem; border-width: 1px;">
+              <p style="font-size: 1rem;">Перетащите ZIP архив с проектом сюда</p>
+              <input type="file" id="zipInput" accept=".zip" style="display:none;">
+            </div>
+            
+            <div style="margin-top: 1.5rem; color: #fff;">
+              <h4>Требования к архиву:</h4>
+              <ul style="color: var(--color-text-muted); font-size: 0.9rem; padding-left: 1.2rem; margin-top: 0.5rem;">
+                <li>В корне должен лежать <b>index.html</b></li>
+                <li>Скрипты подключаются как <code>&lt;script src="js/main.js"&gt;&lt;/script&gt;</code></li>
+                <li>Стили подключаются как <code>&lt;link rel="stylesheet" href="css/style.css"&gt;</code></li>
+                <li>Картинки: <code>&lt;img src="img/logo.png"&gt;</code></li>
+              </ul>
+            </div>
+            
+            <button id="btnProcess" class="btn-cyber btn-cyber-primary" style="width: 100%; margin-top: 2rem; font-size: 1.2rem; padding: 0.5rem; display: none;">
+              Собрать в один файл
+            </button>
+            
+            <a id="downloadLink" class="btn-cyber btn-cyber-outline" style="width: 100%; margin-top: 1rem; font-size: 1.2rem; padding: 0.5rem; display: none; text-align: center;">
+              Скачать index.html
+            </a>
+          </aside>
+
+          <!-- Main Workspace -->
+          <div class="tool-main">
+            <h3 style="color: #fff; margin-bottom: 1rem; font-family: var(--font-display); font-size: 1.8rem;">ЛОГ СБОРКИ</h3>
+            <div id="logBox" class="log-box">
+              <div class="log-entry log-info"><span class="log-icon">></span><span class="log-text">Готов к работе. Загрузите ZIP архив.</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const zipInput = document.getElementById('zipInput');
+    const btnProcess = document.getElementById('btnProcess');
+    const downloadLink = document.getElementById('downloadLink');
+    const logBox = document.getElementById('logBox');
+
+    let loadedZip = null;
+    let fileMap = {};
+
+    function log(msg, type = 'info') {
+      const icons = { info: '>', success: '✓', warn: '⚠', error: '✕' };
+      const div = document.createElement('div');
+      div.className = `log-entry log-${type}`;
+      div.innerHTML = `<span class="log-icon">${icons[type] || '>'}</span><span class="log-text">${msg}</span>`;
+      logBox.appendChild(div);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    dropzone.addEventListener('click', () => zipInput.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handleZip(e.dataTransfer.files[0]);
+    });
+    zipInput.addEventListener('change', (e) => {
+      if (e.target.files.length) handleZip(e.target.files[0]);
+    });
+
+    async function handleZip(file) {
+      if (!file.name.endsWith('.zip')) {
+        return log('ОШИБКА: Пожалуйста, загрузите ZIP архив.', 'error');
+      }
+      
+      logBox.innerHTML = '';
+      log(`Чтение архива: ${file.name}...`, 'info');
+      
+      try {
+        loadedZip = await JSZip.loadAsync(file);
+        fileMap = {};
+        let hasIndex = false;
+
+        for (let [filename, zipEntry] of Object.entries(loadedZip.files)) {
+          if (zipEntry.dir) continue;
+          
+          // Normalize paths
+          const cleanName = filename.replace(/^\//, '').replace(/\\/g, '/');
+          
+          if (cleanName === 'index.html') hasIndex = true;
+          
+          // Pre-load content
+          if (cleanName.match(/\.(png|jpe?g|gif|svg|webp|woff2?|ttf|mp3|wav|ogg)$/i)) {
+            const base64 = await zipEntry.async("base64");
+            const mime = getMimeType(cleanName);
+            fileMap[cleanName] = `data:${mime};base64,${base64}`;
+          } else {
+            const text = await zipEntry.async("string");
+            fileMap[cleanName] = text;
+          }
+        }
+
+        if (!hasIndex) {
+          log('ОШИБКА: index.html не найден в корне архива!', 'error');
+        } else {
+          log(`Загружено ${Object.keys(fileMap).length} файлов. Готов к сборке.`, 'success');
+          btnProcess.style.display = 'inline-flex';
+          downloadLink.style.display = 'none';
+        }
+      } catch (e) {
+        log(`ОШИБКА: ${e.message}`, 'error');
+      }
+    }
+
+    function getMimeType(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      const mimes = {
+        'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+        'gif': 'image/gif', 'svg': 'image/svg+xml', 'webp': 'image/webp',
+        'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'ogg': 'audio/ogg',
+        'woff': 'font/woff', 'woff2': 'font/woff2', 'ttf': 'font/ttf'
+      };
+      return mimes[ext] || 'application/octet-stream';
+    }
+
+    btnProcess.addEventListener('click', () => {
+      if (!fileMap['index.html']) return;
+      
+      log('Начинаю процесс сборки (Inlining)...', 'info');
+      let html = fileMap['index.html'];
+
+      // Inline CSS
+      // <link rel="stylesheet" href="css/style.css">
+      html = html.replace(/<link[^>]+rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>/gi, (match, href) => {
+        const cleanHref = href.replace(/^\.\//, ''); // remove ./
+        if (fileMap[cleanHref]) {
+          log(`Заинлайнен CSS: ${cleanHref}`, 'success');
+          return `<style>\n${fileMap[cleanHref]}\n</style>`;
+        }
+        log(`ПРЕДУПРЕЖДЕНИЕ: CSS файл не найден в архиве: ${cleanHref}`, 'warn');
+        return match;
+      });
+
+      // Inline JS
+      // <script src="js/main.js"></script>
+      html = html.replace(/<script[^>]+src=["']([^"']+)["'][^>]*>[\s\S]*?<\/script>/gi, (match, src) => {
+        const cleanSrc = src.replace(/^\.\//, '');
+        if (fileMap[cleanSrc]) {
+          log(`Заинлайнен JS: ${cleanSrc}`, 'success');
+          return `<script>\n${fileMap[cleanSrc]}\n<\/script>`;
+        }
+        log(`ПРЕДУПРЕЖДЕНИЕ: JS файл не найден в архиве: ${cleanSrc}`, 'warn');
+        return match;
+      });
+
+      // Inline Images in HTML tags
+      // <img src="img/logo.png">
+      html = html.replace(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
+        if (src.startsWith('data:')) return match;
+        const cleanSrc = src.replace(/^\.\//, '');
+        if (fileMap[cleanSrc]) {
+          log(`Заинлайнена картинка (HTML): ${cleanSrc}`, 'success');
+          return match.replace(src, fileMap[cleanSrc]);
+        }
+        log(`ПРЕДУПРЕЖДЕНИЕ: Картинка не найдена в архиве: ${cleanSrc}`, 'warn');
+        return match;
+      });
+
+      // Simple attempt to inline CSS backgrounds url('img.png') - highly simplified
+      html = html.replace(/url\(['"]?([^'"\)]+)['"]?\)/gi, (match, url) => {
+        if (url.startsWith('data:')) return match;
+        const cleanUrl = url.replace(/^\.\//, '');
+        if (fileMap[cleanUrl]) {
+          log(`Заинлайнен ресурс (CSS/JS url): ${cleanUrl}`, 'success');
+          return `url('${fileMap[cleanUrl]}')`;
+        }
+        return match;
+      });
+
+      log('Сборка успешно завершена!', 'success');
+      
+      const blob = new Blob([html], { type: 'text/html' });
+      downloadLink.href = URL.createObjectURL(blob);
+      downloadLink.download = 'index_inlined.html';
+      downloadLink.style.display = 'inline-flex';
+      btnProcess.style.display = 'none';
+    });
+  </script>
+</body>
+</html>

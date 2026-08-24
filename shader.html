@@ -1,0 +1,1201 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Shader FX Builder | xGR3ENx Tools</title>
+  
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="font/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/modern.css">
+  <link rel="stylesheet" href="css/tools.css">
+  
+  <!-- Three.js for WebGL Canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+
+<body>
+  <header class="site-header scrolled">
+    <div class="site-container">
+      <div class="nav-wrapper">
+        <a href="index.html" class="brand-logo-link" title="xGR3ENx Tools">
+          <img class="brand-logo-img" src="img/logo.svg" alt="xGR3ENx Logo" width="44" height="44">
+          <div class="brand-logo-text">
+            xGR3ENx
+            <span>TOOLS</span>
+          </div>
+        </a>
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-item-link">НА ГЛАВНУЮ</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding-top: 100px;">
+    <section class="section-wrapper" style="padding-top: 2rem;">
+      <div class="site-container">
+        
+        <div class="tool-header">
+          <h1>SHADER FX BUILDER</h1>
+          <p>Генератор WebGL шейдеров для Playables. Выберите пресет, настройте эффекты и скопируйте код для Three.js или PixiJS.</p>
+        </div>
+
+        <div class="tool-layout">
+          <!-- Settings Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">НАСТРОЙКИ</h3>
+            
+            <div class="form-group">
+              <label class="form-label" for="presetSelect">Эффект (Пресет)</label>
+              <select id="presetSelect" class="form-select">
+                <option value="wave">Wave / Distortion</option>
+                <option value="glitch">Cyber Glitch</option>
+                <option value="crt">CRT Monitor</option>
+                <option value="plasma">Psychedelic Plasma</option>
+                <option value="blackhole">Black Hole (Twist)</option>
+                <option value="chromatic">Chromatic Aberration</option>
+                <option value="hologram">Sci-Fi Hologram</option>
+                <option value="pixelate">Retro Pixelation</option>
+                <option value="fire">Procedural Fire</option>
+                <option value="matrix">Digital Rain (Matrix)</option>
+                <option value="kaleidoscope">Kaleidoscope</option>
+                <option value="water">Water Ripples (Caustics)</option>
+                <option value="vhs">VHS Distortion</option>
+                <option value="stars">Warp Drive (Stars)</option>
+                <option value="halftone">Comic Halftone</option>
+                <option value="raymarch">3D Raymarching</option>
+                <option value="neon">Neon Lines</option>
+                <option value="voronoi">Voronoi Liquid</option>
+                <option value="hypnotic">Hypnotic Tunnel</option>
+                <option value="ascii">ASCII Art</option>
+                <option value="clouds">Clouds (FBM)</option>
+                <option value="mandelbrot">Mandelbrot Zoom</option>
+                <option value="crtrgb">CRT Pixels</option>
+                <option value="scanlines">Hacker Scanlines</option>
+                <option value="lava">Lava Lamp (Metaballs)</option>
+              </select>
+            </div>
+            
+            <!-- Uniform Sliders -->
+            <div id="uniformsContainer">
+              <!-- Sliders injected by JS -->
+            </div>
+            
+            <button id="btnExport" class="btn-cyber btn-cyber-outline" style="width: 100%; margin-top: 1.5rem; font-size: 1.2rem; padding: 0.5rem;">
+              Экспорт кода
+            </button>
+          </aside>
+
+          <!-- Main Workspace -->
+          <div class="tool-main" style="display: flex; flex-direction: column;">
+            <!-- Canvas -->
+            <div id="canvasWrapper" style="flex: 1; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); overflow: hidden; position: relative;">
+                <!-- Three.js Canvas will be injected here -->
+            </div>
+
+            <!-- Code Export Area -->
+            <div id="codeExportArea" style="display:none; margin-top: 1rem;">
+              <h4 style="color:var(--color-primary); margin-bottom:0.5rem;">Фрагментный Шейдер (GLSL):</h4>
+              <textarea id="codeTextarea" class="form-select" style="height: 200px; font-family: monospace; font-size: 12px;" readonly></textarea>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const presets = {
+      wave: {
+        uniforms: {
+          u_speed: { type: 'f', value: 1.0, min: 0.1, max: 5.0, label: 'Скорость' },
+          u_frequency: { type: 'f', value: 10.0, min: 1.0, max: 50.0, label: 'Частота' },
+          u_amplitude: { type: 'f', value: 0.05, min: 0.01, max: 0.2, label: 'Амплитуда' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_speed;
+uniform float u_frequency;
+uniform float u_amplitude;
+varying vec2 vUv;
+
+// Имитация базовой текстуры для предпросмотра
+vec3 getBase(vec2 uv) {
+    float grid = step(0.9, sin(uv.x * 50.0)) + step(0.9, sin(uv.y * 50.0));
+    return mix(vec3(0.1, 0.2, 0.3), vec3(0.2, 0.8, 0.4), grid);
+}
+
+void main() {
+    vec2 uv = vUv;
+    uv.y += sin(uv.x * u_frequency + u_time * u_speed) * u_amplitude;
+    uv.x += cos(uv.y * u_frequency + u_time * u_speed) * u_amplitude;
+    gl_FragColor = vec4(getBase(uv), 1.0);
+}
+        `
+      },
+      glitch: {
+        uniforms: {
+          u_intensity: { type: 'f', value: 0.1, min: 0.0, max: 1.0, label: 'Интенсивность' },
+          u_speed: { type: 'f', value: 5.0, min: 1.0, max: 20.0, label: 'Скорость' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_intensity;
+uniform float u_speed;
+varying vec2 vUv;
+
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+vec3 getBase(vec2 uv) {
+    float grid = step(0.9, sin(uv.x * 50.0)) + step(0.9, sin(uv.y * 50.0));
+    return mix(vec3(0.1, 0.2, 0.3), vec3(0.2, 0.8, 0.4), grid);
+}
+
+void main() {
+    vec2 uv = vUv;
+    float time = floor(u_time * u_speed);
+    float splitAmnt = 0.0;
+    if(rand(vec2(time, 1.0)) > 0.8) {
+        splitAmnt = (rand(vec2(time, 2.0)) - 0.5) * u_intensity;
+    }
+    
+    float scanline = sin(uv.y * 800.0) * 0.04;
+    vec2 uvR = uv + vec2(splitAmnt, 0.0);
+    vec2 uvG = uv;
+    vec2 uvB = uv - vec2(splitAmnt, 0.0);
+    
+    vec3 col = vec3(
+        getBase(uvR).r,
+        getBase(uvG).g,
+        getBase(uvB).b
+    ) - scanline;
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      crt: {
+        uniforms: {
+          u_distortion: { type: 'f', value: 0.2, min: 0.0, max: 0.5, label: 'Искажение' },
+          u_scanlines: { type: 'f', value: 0.5, min: 0.0, max: 1.0, label: 'Сканлайны' },
+          u_vignette: { type: 'f', value: 1.0, min: 0.0, max: 2.0, label: 'Виньетка' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_distortion;
+uniform float u_scanlines;
+uniform float u_vignette;
+varying vec2 vUv;
+
+vec3 getBase(vec2 uv) {
+    float text = step(0.8, fract(sin(dot(uv*floor(u_time*5.0) ,vec2(12.9898,78.233))) * 43758.5453));
+    return mix(vec3(0.0, 0.2, 0.1), vec3(0.0, 1.0, 0.3), text);
+}
+
+void main() {
+    vec2 uv = vUv;
+    vec2 cc = uv - 0.5;
+    float dist = dot(cc, cc) * u_distortion;
+    uv = uv + cc * (1.0 + dist) * dist;
+    
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        return;
+    }
+    
+    vec3 color = getBase(uv);
+    float scanline = sin(uv.y * 800.0) * 0.1 * u_scanlines;
+    color -= scanline;
+    
+    float vig = 1.0 - smoothstep(0.3, 0.8, length(vUv - 0.5)) * u_vignette;
+    color *= vig;
+    
+    gl_FragColor = vec4(color, 1.0);
+}
+        `
+      },
+      plasma: {
+        uniforms: {
+          u_speed: { type: 'f', value: 2.0, min: 0.1, max: 10.0, label: 'Скорость' },
+          u_scale: { type: 'f', value: 10.0, min: 1.0, max: 50.0, label: 'Масштаб' },
+          u_color1: { type: 'c', value: '#1ed65b', label: 'Цвет 1' },
+          u_color2: { type: 'c', value: '#00f0ff', label: 'Цвет 2' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_speed;
+uniform float u_scale;
+uniform vec3 u_color1;
+uniform vec3 u_color2;
+varying vec2 vUv;
+
+void main() {
+    vec2 uv = vUv * u_scale;
+    float t = u_time * u_speed;
+    
+    float v1 = sin(uv.x + t);
+    float v2 = sin(uv.y + t);
+    float v3 = sin(uv.x + uv.y + t);
+    float v4 = sin(length(uv) + t);
+    
+    float v = (v1+v2+v3+v4) / 4.0; 
+    v = v * 0.5 + 0.5; 
+    
+    vec3 col = mix(u_color1, u_color2, v);
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      blackhole: {
+        uniforms: {
+          u_intensity: { type: 'f', value: 3.0, min: 0.0, max: 10.0, label: 'Сила скручивания' },
+          u_radius: { type: 'f', value: 0.4, min: 0.1, max: 1.0, label: 'Радиус' },
+          u_center_x: { type: 'f', value: 0.5, min: 0.0, max: 1.0, label: 'Центр X' },
+          u_center_y: { type: 'f', value: 0.5, min: 0.0, max: 1.0, label: 'Центр Y' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_intensity;
+uniform float u_radius;
+uniform float u_center_x;
+uniform float u_center_y;
+varying vec2 vUv;
+
+vec3 getBase(vec2 uv) {
+    float grid = step(0.5, fract(uv.x*10.0)) == step(0.5, fract(uv.y*10.0)) ? 1.0 : 0.0;
+    return mix(vec3(0.1, 0.1, 0.1), vec3(0.0, 1.0, 0.5), grid);
+}
+
+void main() {
+    vec2 uv = vUv;
+    vec2 center = vec2(u_center_x, u_center_y);
+    vec2 delta = uv - center;
+    float dist = length(delta);
+    
+    if(dist < u_radius) {
+        float angle = atan(delta.y, delta.x);
+        float twist = (u_radius - dist) * u_intensity;
+        angle += twist;
+        uv = center + vec2(cos(angle), sin(angle)) * dist;
+    }
+    
+    gl_FragColor = vec4(getBase(uv), 1.0);
+}
+        `
+      },
+      chromatic: {
+        uniforms: {
+          u_amount: { type: 'f', value: 0.02, min: 0.0, max: 0.1, label: 'Смещение' },
+          u_speed: { type: 'f', value: 5.0, min: 0.0, max: 20.0, label: 'Пульсация' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_amount;
+uniform float u_speed;
+varying vec2 vUv;
+
+vec3 getBase(vec2 uv) {
+    float circle = smoothstep(0.3, 0.29, length(uv - 0.5));
+    return vec3(circle);
+}
+
+void main() {
+    vec2 uv = vUv;
+    float offset = u_amount * (1.0 + sin(u_time * u_speed) * 0.5);
+    
+    float r = getBase(uv - vec2(offset, 0.0)).r;
+    float g = getBase(uv).g;
+    float b = getBase(uv + vec2(offset, 0.0)).b;
+    
+    gl_FragColor = vec4(r, g, b, 1.0);
+}
+        `
+      },
+      hologram: {
+        uniforms: {
+          u_color: { type: 'c', value: '#00f0ff', label: 'Цвет' },
+          u_scanlines: { type: 'f', value: 800.0, min: 100.0, max: 1500.0, label: 'Полосы' },
+          u_speed: { type: 'f', value: 5.0, min: 0.0, max: 15.0, label: 'Скорость' },
+          u_glitch: { type: 'f', value: 0.3, min: 0.0, max: 1.0, label: 'Помехи' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform vec3 u_color;
+uniform float u_scanlines;
+uniform float u_speed;
+uniform float u_glitch;
+varying vec2 vUv;
+
+void main() {
+    vec2 uv = vUv;
+    
+    float scan = sin(uv.y * u_scanlines - u_time * u_speed) * 0.5 + 0.5;
+    float alpha = scan * 0.7 + 0.3;
+    
+    float band = step(0.9, sin(uv.y * 10.0 + u_time * u_speed * 0.5));
+    alpha += band * u_glitch;
+    
+    // Simulate a shape
+    float shape = smoothstep(0.4, 0.39, length(uv - 0.5));
+    alpha *= shape;
+    
+    gl_FragColor = vec4(u_color * alpha * 1.5, alpha);
+}
+        `
+      },
+      pixelate: {
+        uniforms: {
+          u_pixels: { type: 'f', value: 40.0, min: 10.0, max: 200.0, label: 'Размер пикселей' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_pixels;
+varying vec2 vUv;
+
+vec3 getBase(vec2 uv) {
+    vec2 center = uv - 0.5;
+    float angle = atan(center.y, center.x) + u_time;
+    float radius = length(center);
+    float color = sin(angle * 5.0) * cos(radius * 20.0 - u_time * 5.0);
+    return mix(vec3(1.0, 0.2, 0.5), vec3(0.0, 1.0, 0.3), color * 0.5 + 0.5);
+}
+
+void main() {
+    vec2 uv = vUv;
+    vec2 pUv = floor(uv * u_pixels) / u_pixels;
+    gl_FragColor = vec4(getBase(pUv), 1.0);
+}
+        `
+      },
+      fire: {
+        uniforms: {
+          u_color1: { type: 'c', value: '#ff3300', label: 'Цвет 1' },
+          u_color2: { type: 'c', value: '#ffcc00', label: 'Цвет 2' },
+          u_speed: { type: 'f', value: 3.0, min: 0.1, max: 10.0, label: 'Скорость' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_speed;
+uniform vec3 u_color1;
+uniform vec3 u_color2;
+varying vec2 vUv;
+
+float rand(vec2 n) { 
+    return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+}
+
+float noise(vec2 p){
+    vec2 ip = floor(p);
+    vec2 u = fract(p);
+    u = u*u*(3.0-2.0*u);
+    float res = mix(
+        mix(rand(ip),rand(ip+vec2(1.0,0.0)),u.x),
+        mix(rand(ip+vec2(0.0,1.0)),rand(ip+vec2(1.0,1.0)),u.x),u.y);
+    return res*res;
+}
+
+void main() {
+    vec2 uv = vUv;
+    vec2 p = uv * vec2(5.0, 2.0);
+    p.y -= u_time * u_speed;
+    
+    float n = noise(p * 2.0) * 0.5 + noise(p * 4.0) * 0.25 + noise(p * 8.0) * 0.125;
+    float mask = (1.0 - uv.y) * 1.5;
+    n *= mask;
+    
+    vec3 col = mix(vec3(0.0), u_color1, smoothstep(0.1, 0.5, n));
+    col = mix(col, u_color2, smoothstep(0.4, 0.9, n));
+    
+    gl_FragColor = vec4(col, n);
+}
+        `
+      },
+      matrix: {
+        uniforms: {
+          u_color: { type: 'c', value: '#1ed65b', label: 'Цвет' },
+          u_speed: { type: 'f', value: 5.0, min: 1.0, max: 20.0, label: 'Скорость' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform vec3 u_color;
+uniform float u_speed;
+varying vec2 vUv;
+
+float rand(float n){return fract(sin(n) * 43758.5453123);}
+
+void main() {
+    vec2 uv = vUv;
+    float columns = 40.0;
+    float col = floor(uv.x * columns);
+    float speedOffset = rand(col);
+    
+    float drop = fract(uv.y - u_time * (u_speed * 0.1 + speedOffset * 0.5));
+    float intensity = 1.0 - drop;
+    
+    // add some noise to make it look like characters
+    float charNoise = step(0.2, fract(sin(dot(uv*floor(u_time*10.0), vec2(12.9, 78.2))) * 43758.5));
+    
+    // Tail fade
+    intensity = pow(intensity, 3.0) * charNoise;
+    
+    gl_FragColor = vec4(u_color * intensity, 1.0);
+}
+        `
+      },
+      kaleidoscope: {
+        uniforms: {
+          u_segments: { type: 'f', value: 6.0, min: 2.0, max: 12.0, label: 'Сегменты' },
+          u_speed: { type: 'f', value: 1.0, min: 0.1, max: 5.0, label: 'Скорость вращения' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_segments;
+uniform float u_speed;
+varying vec2 vUv;
+
+vec3 getBase(vec2 uv) {
+    float grid = step(0.5, fract(uv.x * 5.0)) + step(0.5, fract(uv.y * 5.0));
+    return mix(vec3(0.1, 0.4, 0.8), vec3(0.9, 0.2, 0.5), grid);
+}
+
+void main() {
+    vec2 uv = vUv - 0.5;
+    float radius = length(uv);
+    float angle = atan(uv.y, uv.x);
+    
+    float segmentAngle = 3.14159265359 * 2.0 / u_segments;
+    angle = mod(angle, segmentAngle);
+    angle = abs(angle - segmentAngle / 2.0);
+    
+    angle += u_time * u_speed;
+    
+    vec2 newUv = vec2(cos(angle), sin(angle)) * radius + 0.5;
+    
+    gl_FragColor = vec4(getBase(newUv), 1.0);
+}
+        `
+      },
+      water: {
+        uniforms: {
+          u_speed: { type: 'f', value: 2.0, min: 0.1, max: 5.0, label: 'Скорость волн' },
+          u_scale: { type: 'f', value: 5.0, min: 1.0, max: 15.0, label: 'Масштаб ряби' },
+          u_color: { type: 'c', value: '#00aaff', label: 'Цвет воды' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_speed;
+uniform float u_scale;
+uniform vec3 u_color;
+varying vec2 vUv;
+
+void main() {
+    vec2 uv = vUv * u_scale;
+    float t = u_time * u_speed;
+    
+    vec2 p = uv;
+    for(int i = 1; i < 4; i++) {
+        vec2 newp = p;
+        newp.x += 0.6 / float(i) * sin(float(i) * p.y + t + 0.3);
+        newp.y += 0.6 / float(i) * cos(float(i) * p.x + t + 0.3);
+        p = newp;
+    }
+    
+    float val = cos(p.x + p.y + 1.0) * 0.5 + 0.5;
+    vec3 col = u_color * val;
+    col += vec3(pow(val, 5.0)); // Highlights
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      vhs: {
+        uniforms: {
+          u_noise: { type: 'f', value: 0.2, min: 0.0, max: 1.0, label: 'Шум' },
+          u_color_shift: { type: 'f', value: 0.05, min: 0.0, max: 0.2, label: 'Рассинхрон RGB' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_noise;
+uniform float u_color_shift;
+varying vec2 vUv;
+
+float rand(vec2 co){ return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453); }
+
+vec3 getBase(vec2 uv) {
+    float text = step(0.8, fract(sin(dot(uv*5.0 ,vec2(12.9,78.2))) * 43758.5));
+    return mix(vec3(0.0), vec3(1.0, 1.0, 1.0), text);
+}
+
+void main() {
+    vec2 uv = vUv;
+    
+    // Wave distortion
+    float y = uv.y;
+    float wave = sin(y * 20.0 + u_time * 5.0) * 0.005;
+    uv.x += wave;
+    
+    // Track line
+    float track = step(0.98, sin(y * 5.0 - u_time * 2.0));
+    uv.x += track * 0.05;
+    
+    float r = getBase(uv + vec2(u_color_shift, 0.0)).r;
+    float g = getBase(uv).g;
+    float b = getBase(uv - vec2(u_color_shift, 0.0)).b;
+    
+    vec3 col = vec3(r,g,b);
+    
+    // Noise overlay
+    float n = rand(uv + u_time) * u_noise;
+    col += n;
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      stars: {
+        uniforms: {
+          u_speed: { type: 'f', value: 2.0, min: 0.1, max: 10.0, label: 'Скорость полета' },
+          u_density: { type: 'f', value: 5.0, min: 1.0, max: 20.0, label: 'Плотность звезд' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_speed;
+uniform float u_density;
+varying vec2 vUv;
+
+float rand(vec2 co) { return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453); }
+
+void main() {
+    vec2 uv = vUv - 0.5;
+    float angle = atan(uv.y, uv.x);
+    float dist = length(uv);
+    
+    float z = fract(u_density / dist - u_time * u_speed);
+    
+    float star = rand(vec2(floor(angle * 50.0), floor(u_density / dist - u_time * u_speed)));
+    
+    float brightness = step(0.98, star) * (1.0 - dist);
+    
+    gl_FragColor = vec4(vec3(brightness), 1.0);
+}
+        `
+      },
+      halftone: {
+        uniforms: {
+          u_dots: { type: 'f', value: 50.0, min: 10.0, max: 150.0, label: 'Размер точек' },
+          u_angle: { type: 'f', value: 0.5, min: 0.0, max: 3.14, label: 'Угол наклона' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_dots;
+uniform float u_angle;
+varying vec2 vUv;
+
+vec3 getBase(vec2 uv) {
+    // Generate a gradient/shape to apply halftone on
+    float val = sin(uv.x * 10.0 + u_time) * cos(uv.y * 10.0) * 0.5 + 0.5;
+    return vec3(val);
+}
+
+void main() {
+    vec2 uv = vUv;
+    vec3 col = getBase(uv);
+    
+    // Rotate UVs for the grid
+    float s = sin(u_angle);
+    float c = cos(u_angle);
+    mat2 rot = mat2(c, -s, s, c);
+    
+    vec2 pos = rot * uv * u_dots;
+    vec2 nearest = floor(pos) + 0.5;
+    float dist = length(pos - nearest);
+    
+    // Brightness dictates dot size
+    float brightness = dot(col, vec3(0.299, 0.587, 0.114));
+    float radius = brightness * 0.707; // max radius for a cell
+    
+    float dotAlpha = smoothstep(radius, radius - 0.1, dist);
+    
+    gl_FragColor = vec4(vec3(dotAlpha), 1.0);
+}
+        `
+      },
+      raymarch: {
+        uniforms: {
+          u_speed: { type: 'f', value: 1.0, min: 0.1, max: 5.0, label: 'Скорость' },
+          u_color: { type: 'c', value: '#1e5bd6', label: 'Цвет сферы' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_speed;
+uniform vec3 u_color;
+varying vec2 vUv;
+
+// Simple sphere SDF
+float sdSphere(vec3 p, float s) { return length(p) - s; }
+
+float map(vec3 p) {
+    // Add sine wave distortion to the sphere
+    float d = sdSphere(p, 1.0);
+    d += sin(p.x * 10.0 + u_time * u_speed) * sin(p.y * 10.0) * sin(p.z * 10.0) * 0.1;
+    return d;
+}
+
+vec3 calcNormal(vec3 p) {
+    vec2 e = vec2(0.01, 0.0);
+    return normalize(vec3(
+        map(p + e.xyy) - map(p - e.xyy),
+        map(p + e.yxy) - map(p - e.yxy),
+        map(p + e.yyx) - map(p - e.yyx)
+    ));
+}
+
+void main() {
+    vec2 uv = vUv * 2.0 - 1.0;
+    
+    vec3 ro = vec3(0.0, 0.0, 3.0);
+    vec3 rd = normalize(vec3(uv, -1.0));
+    
+    float t = 0.0;
+    for(int i = 0; i < 64; i++) {
+        vec3 p = ro + rd * t;
+        float d = map(p);
+        if(d < 0.01 || t > 10.0) break;
+        t += d;
+    }
+    
+    vec3 col = vec3(0.0);
+    if(t < 10.0) {
+        vec3 p = ro + rd * t;
+        vec3 n = calcNormal(p);
+        vec3 light = normalize(vec3(1.0, 1.0, 1.0));
+        float diff = max(dot(n, light), 0.0);
+        float amb = 0.2;
+        col = u_color * (diff + amb);
+    }
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      neon: {
+        uniforms: {
+          u_speed: { type: 'f', value: 2.0, min: 0.1, max: 10.0, label: 'Скорость' },
+          u_width: { type: 'f', value: 0.02, min: 0.005, max: 0.1, label: 'Толщина линий' },
+          u_color: { type: 'c', value: '#ff00ff', label: 'Неоновый цвет' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_speed;
+uniform float u_width;
+uniform vec3 u_color;
+varying vec2 vUv;
+
+void main() {
+    vec2 uv = vUv * 2.0 - 1.0;
+    
+    float t = u_time * u_speed;
+    
+    float d = length(uv);
+    float lines = sin(d * 20.0 - t);
+    
+    // Draw neon rings
+    float glow = u_width / abs(lines);
+    
+    // Add vertical scan line
+    float vLine = u_width / abs(uv.x + sin(uv.y * 5.0 + t) * 0.5);
+    glow += vLine;
+    
+    vec3 col = u_color * glow;
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      voronoi: {
+        uniforms: {
+          u_scale: { type: 'f', value: 5.0, min: 1.0, max: 20.0, label: 'Масштаб ячеек' },
+          u_speed: { type: 'f', value: 1.5, min: 0.1, max: 5.0, label: 'Скорость движения' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_scale;
+uniform float u_speed;
+varying vec2 vUv;
+
+vec2 hash2(vec2 p) {
+    p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+    return fract(sin(p) * 43758.5453);
+}
+
+void main() {
+    vec2 uv = vUv * u_scale;
+    vec2 g = floor(uv);
+    vec2 f = fract(uv);
+    
+    float minDist = 1.0;
+    
+    for(int y = -1; y <= 1; y++) {
+        for(int x = -1; x <= 1; x++) {
+            vec2 offset = vec2(float(x), float(y));
+            vec2 h = hash2(g + offset);
+            vec2 pos = offset + 0.5 + 0.5 * sin(u_time * u_speed + 6.2831 * h);
+            float d = length(f - pos);
+            if(d < minDist) {
+                minDist = d;
+            }
+        }
+    }
+    
+    // Liquid effect
+    vec3 col = vec3(0.1, 0.4, 0.8) * minDist;
+    col += vec3(0.0, 0.8, 1.0) * (1.0 - minDist);
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      hypnotic: {
+        uniforms: {
+          u_arms: { type: 'f', value: 3.0, min: 1.0, max: 10.0, label: 'Лучи' },
+          u_speed: { type: 'f', value: 2.0, min: 0.1, max: 10.0, label: 'Скорость' },
+          u_color: { type: 'c', value: '#ff3300', label: 'Цвет спирали' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_arms;
+uniform float u_speed;
+uniform vec3 u_color;
+varying vec2 vUv;
+
+void main() {
+    vec2 uv = vUv - 0.5;
+    float dist = length(uv);
+    float angle = atan(uv.y, uv.x);
+    
+    float spiral = sin(u_arms * angle + 10.0 * dist - u_time * u_speed);
+    
+    // Antialiasing / smoothstep
+    float val = smoothstep(-0.2, 0.2, spiral);
+    
+    vec3 bg = vec3(0.05, 0.05, 0.05);
+    vec3 col = mix(bg, u_color, val);
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      ascii: {
+        uniforms: {
+          u_size: { type: 'f', value: 60.0, min: 20.0, max: 150.0, label: 'Размер сетки' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_size;
+varying vec2 vUv;
+
+float character(int n, vec2 p) {
+    p = floor(p*vec2(4.0, -4.0) + 2.5);
+    if(clamp(p.x, 0.0, 4.0) == p.x && clamp(p.y, 0.0, 4.0) == p.y) {
+        if(int(mod(float(n)/exp2(p.x + 5.0*p.y), 2.0)) == 1) return 1.0;
+    }
+    return 0.0;
+}
+
+void main() {
+    vec2 uv = vUv;
+    vec2 p = floor(uv * u_size) / u_size;
+    
+    // Source color (just a moving gradient for demo)
+    float gray = (sin(p.x * 10.0 + u_time) + cos(p.y * 10.0 + u_time)) * 0.25 + 0.5;
+    
+    vec2 charPos = fract(uv * u_size);
+    
+    float c = 0.0;
+    if(gray > 0.8) c = character(3114, charPos);      // #
+    else if(gray > 0.6) c = character(15234, charPos); // *
+    else if(gray > 0.4) c = character(1040, charPos);  // +
+    else if(gray > 0.2) c = character(4, charPos);     // .
+    
+    vec3 col = vec3(0.0, 1.0, 0.3) * c;
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      clouds: {
+        uniforms: {
+          u_speed: { type: 'f', value: 0.5, min: 0.1, max: 3.0, label: 'Скорость ветра' },
+          u_scale: { type: 'f', value: 3.0, min: 1.0, max: 10.0, label: 'Масштаб облаков' },
+          u_color: { type: 'c', value: '#ffffff', label: 'Цвет' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_speed;
+uniform float u_scale;
+uniform vec3 u_color;
+varying vec2 vUv;
+
+// Simple 2D noise
+float hash(vec2 p) {
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+}
+
+float noise(vec2 x) {
+    vec2 p = floor(x);
+    vec2 f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = hash(p + vec2(0.0, 0.0));
+    float b = hash(p + vec2(1.0, 0.0));
+    float c = hash(p + vec2(0.0, 1.0));
+    float d = hash(p + vec2(1.0, 1.0));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+
+// Fractal Brownian Motion
+float fbm(vec2 x) {
+    float v = 0.0;
+    float a = 0.5;
+    vec2 shift = vec2(100.0);
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+    for (int i = 0; i < 5; ++i) {
+        v += a * noise(x);
+        x = rot * x * 2.0 + shift;
+        a *= 0.5;
+    }
+    return v;
+}
+
+void main() {
+    vec2 uv = vUv * u_scale;
+    
+    vec2 q = vec2(fbm(uv + u_time * u_speed * 0.1), fbm(uv + vec2(1.0)));
+    vec2 r = vec2(fbm(uv + 1.0 * q + vec2(1.7, 9.2) + u_time * u_speed * 0.15),
+                  fbm(uv + 1.0 * q + vec2(8.3, 2.8) + u_time * u_speed * 0.126));
+    
+    float f = fbm(uv + r);
+    
+    vec3 col = mix(vec3(0.1, 0.4, 0.8), u_color, f * 1.5);
+    
+    // Add depth
+    col = mix(col, vec3(0.0, 0.1, 0.2), clamp(length(q), 0.0, 1.0));
+    col = mix(col, u_color, clamp(length(r.x), 0.0, 1.0));
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      mandelbrot: {
+        uniforms: {
+          u_speed: { type: 'f', value: 1.0, min: 0.1, max: 3.0, label: 'Скорость зума' },
+          u_iters: { type: 'f', value: 100.0, min: 50.0, max: 300.0, label: 'Итерации (детализация)' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_speed;
+uniform float u_iters;
+varying vec2 vUv;
+
+void main() {
+    vec2 uv = vUv * 2.0 - 1.0;
+    
+    // Zoom in on a specific point over time
+    float zoom = pow(0.5, u_time * u_speed);
+    vec2 offset = vec2(-0.743643887037158, 0.131825904205311); // Cool spot
+    vec2 c = uv * zoom + offset;
+    
+    vec2 z = vec2(0.0);
+    float iter = 0.0;
+    for(int i = 0; i < 300; i++) {
+        if(float(i) > u_iters) break;
+        
+        float x = (z.x * z.x - z.y * z.y) + c.x;
+        float y = (z.y * z.x + z.x * z.y) + c.y;
+        
+        if((x * x + y * y) > 4.0) break;
+        z.x = x;
+        z.y = y;
+        iter++;
+    }
+    
+    // Smooth coloring
+    if(iter < u_iters) {
+        float log_z = log(z.x*z.x + z.y*z.y) / 2.0;
+        float nu = log(log_z / log(2.0)) / log(2.0);
+        iter = iter + 1.0 - nu;
+    }
+    
+    float t = iter / u_iters;
+    
+    vec3 col = vec3(0.0);
+    if(iter < u_iters) {
+        col = 0.5 + 0.5 * cos(3.14159 * 2.0 * t + vec3(0.0, 0.3, 0.6));
+    }
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      crtrgb: {
+        uniforms: {
+          u_pixels: { type: 'f', value: 100.0, min: 50.0, max: 300.0, label: 'Количество пикселей' },
+          u_speed: { type: 'f', value: 1.0, min: 0.1, max: 5.0, label: 'Скорость помех' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_pixels;
+uniform float u_speed;
+varying vec2 vUv;
+
+void main() {
+    vec2 uv = vUv;
+    
+    // Curvature
+    uv = uv * 2.0 - 1.0;
+    vec2 offset = uv.yx / 5.0;
+    uv = uv + uv * offset * offset;
+    uv = uv * 0.5 + 0.5;
+    
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        return;
+    }
+    
+    vec2 grid = floor(uv * u_pixels);
+    vec2 gridF = fract(uv * u_pixels);
+    
+    // Animated content
+    float val = sin(grid.x * 0.1 + u_time * u_speed) * cos(grid.y * 0.1 + u_time * u_speed) * 0.5 + 0.5;
+    
+    // RGB Subpixels
+    vec3 col = vec3(0.0);
+    if(gridF.x < 0.33) col.r = val;
+    else if(gridF.x < 0.66) col.g = val;
+    else col.b = val;
+    
+    // Scanline gap
+    col *= step(0.2, gridF.y);
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      scanlines: {
+        uniforms: {
+          u_density: { type: 'f', value: 50.0, min: 10.0, max: 150.0, label: 'Плотность линий' },
+          u_speed: { type: 'f', value: 2.0, min: -5.0, max: 5.0, label: 'Скорость скролла' },
+          u_color: { type: 'c', value: '#00ff00', label: 'Цвет' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_density;
+uniform float u_speed;
+uniform vec3 u_color;
+varying vec2 vUv;
+
+void main() {
+    float y = vUv.y;
+    
+    float lines = sin(y * u_density + u_time * u_speed * 10.0) * 0.5 + 0.5;
+    
+    // Darken lines
+    lines = smoothstep(0.3, 0.7, lines);
+    
+    vec3 col = u_color * lines;
+    
+    // Add a pulsing thick bar
+    float bar = smoothstep(0.0, 0.1, fract(y * 2.0 - u_time * u_speed)) * smoothstep(1.0, 0.9, fract(y * 2.0 - u_time * u_speed));
+    col += u_color * bar * 0.5;
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      },
+      lava: {
+        uniforms: {
+          u_speed: { type: 'f', value: 1.0, min: 0.1, max: 3.0, label: 'Скорость течения' },
+          u_color: { type: 'c', value: '#ff3300', label: 'Цвет лавы' },
+          u_color2: { type: 'c', value: '#ffff00', label: 'Цвет ядра' }
+        },
+        fragmentShader: `
+uniform float u_time;
+uniform float u_speed;
+uniform vec3 u_color;
+uniform vec3 u_color2;
+varying vec2 vUv;
+
+// Fake metaballs / noise
+float noise(vec2 p) {
+    return sin(p.x * 3.0 + u_time * u_speed) * cos(p.y * 3.0 + u_time * u_speed * 0.5) * 0.5 + 0.5;
+}
+
+void main() {
+    vec2 uv = vUv * 2.0 - 1.0;
+    uv.x *= 1.5; // aspect ratio approximation
+    
+    float v = 0.0;
+    
+    // Add multiple blobs
+    for(int i = 1; i <= 5; i++) {
+        float fi = float(i);
+        vec2 pos = vec2(
+            sin(u_time * u_speed * 0.3 * fi),
+            cos(u_time * u_speed * 0.4 * fi)
+        );
+        float d = length(uv - pos);
+        v += 0.1 / d; // metaball formula
+    }
+    
+    // Threshold
+    float iso = smoothstep(0.8, 1.2, v);
+    
+    // Core heat
+    float core = smoothstep(1.2, 2.0, v);
+    
+    vec3 col = mix(vec3(0.05, 0.0, 0.0), u_color, iso);
+    col = mix(col, u_color2, core);
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+        `
+      }
+    };
+
+    // Scene Setup
+    const container = document.getElementById('canvasWrapper');
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    container.appendChild(renderer.domElement);
+
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const scene = new THREE.Scene();
+    
+    const geometry = new THREE.PlaneGeometry(2, 2);
+    let material, mesh;
+    let uniforms = { u_time: { value: 0 } };
+
+    const presetSelect = document.getElementById('presetSelect');
+    const uniformsContainer = document.getElementById('uniformsContainer');
+    const btnExport = document.getElementById('btnExport');
+    const codeExportArea = document.getElementById('codeExportArea');
+    const codeTextarea = document.getElementById('codeTextarea');
+
+    function buildUI(presetKey) {
+      const preset = presets[presetKey];
+      uniformsContainer.innerHTML = '';
+      
+      uniforms = { u_time: { value: 0 } };
+      
+      for (const [key, data] of Object.entries(preset.uniforms)) {
+        const group = document.createElement('div');
+        group.className = 'form-group';
+        
+        const label = document.createElement('label');
+        label.className = 'form-label';
+        
+        if (data.type === 'c') {
+          uniforms[key] = { value: new THREE.Color(data.value) };
+          label.innerHTML = `${data.label}: <span id="val_${key}">${data.value}</span>`;
+          
+          const input = document.createElement('input');
+          input.type = 'color';
+          input.value = data.value;
+          input.style.width = '100%';
+          input.style.height = '40px';
+          input.style.border = 'none';
+          input.style.padding = '0';
+          input.style.cursor = 'pointer';
+          
+          input.addEventListener('input', (e) => {
+            document.getElementById(`val_${key}`).innerText = e.target.value;
+            uniforms[key].value.set(e.target.value);
+          });
+          
+          group.appendChild(label);
+          group.appendChild(input);
+        } else {
+          uniforms[key] = { value: data.value };
+          label.innerHTML = `${data.label}: <span id="val_${key}">${data.value}</span>`;
+          
+          const input = document.createElement('input');
+          input.type = 'range';
+          input.min = data.min;
+          input.max = data.max;
+          input.step = data.step || 0.01;
+          input.value = data.value;
+          
+          input.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            document.getElementById(`val_${key}`).innerText = val.toFixed(2);
+            uniforms[key].value = val;
+          });
+          
+          group.appendChild(label);
+          group.appendChild(input);
+        }
+        
+        uniformsContainer.appendChild(group);
+      }
+      
+      updateMaterial(preset.fragmentShader);
+    }
+
+    function updateMaterial(fragmentShader) {
+      if (mesh) scene.remove(mesh);
+      
+      material = new THREE.ShaderMaterial({
+        uniforms: uniforms,
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: fragmentShader
+      });
+      
+      mesh = new THREE.Mesh(geometry, material);
+      scene.add(mesh);
+    }
+
+    presetSelect.addEventListener('change', (e) => {
+      buildUI(e.target.value);
+      codeExportArea.style.display = 'none';
+    });
+
+    btnExport.addEventListener('click', () => {
+      codeExportArea.style.display = 'block';
+      const presetKey = presetSelect.value;
+      codeTextarea.value = presets[presetKey].fragmentShader.trim();
+    });
+
+    // Init
+    buildUI('wave');
+
+    // Render loop
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      uniforms.u_time.value = clock.getElapsedTime();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Particle FX Generator | xGR3ENx Tools</title>
+  
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="font/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/modern.css">
+  <link rel="stylesheet" href="css/tools.css">
+  <style>
+    .color-inputs { display: flex; gap: 0.5rem; }
+    .color-inputs input[type="color"] { flex: 1; height: 40px; border: none; padding: 0; cursor: pointer; background: transparent; }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header scrolled">
+    <div class="site-container">
+      <div class="nav-wrapper">
+        <a href="index.html" class="brand-logo-link" title="xGR3ENx Tools">
+          <img class="brand-logo-img" src="img/logo.svg" alt="xGR3ENx Logo" width="44" height="44">
+          <div class="brand-logo-text">
+            xGR3ENx
+            <span>TOOLS</span>
+          </div>
+        </a>
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-item-link">НА ГЛАВНУЮ</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding-top: 100px;">
+    <section class="section-wrapper" style="padding-top: 2rem;">
+      <div class="site-container">
+        
+        <div class="tool-header">
+          <h1>PARTICLE FX GENERATOR</h1>
+          <p>Генератор 2D систем частиц на чистом Canvas. Настройте эффект и экспортируйте готовый Vanilla JS класс без сторонних библиотек.</p>
+        </div>
+
+        <div class="tool-layout">
+          <!-- Settings Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">НАСТРОЙКИ</h3>
+            
+            <div class="form-group">
+              <label class="form-label">Пресет</label>
+              <select id="presetSelect" class="form-select">
+                <option value="explosion">Взрыв (Explosion)</option>
+                <option value="fire">Огонь (Fire)</option>
+                <option value="magic">Магия (Sparkles)</option>
+                <option value="snow">Снег (Snow)</option>
+                <option value="rain">Дождь (Rain)</option>
+                <option value="confetti">Конфетти (Confetti)</option>
+                <option value="smoke">Дым (Smoke)</option>
+                <option value="stars">Космос (Stars)</option>
+                <option value="bubbles">Пузырьки (Bubbles)</option>
+                <option value="laser">Лазер (Laser Spark)</option>
+                <option value="galaxy">Галактика (Galaxy)</option>
+                <option value="portal">Портал (Portal)</option>
+                <option value="blood">Кровь (Blood Splatter)</option>
+                <option value="poison">Яд (Poison Gas)</option>
+                <option value="meteor">Метеорит (Meteor Shower)</option>
+                <option value="sparks">Искры (Welding Sparks)</option>
+                <option value="hearts">Сердечки (Hearts)</option>
+                <option value="dust">Пыль (Ambient Dust)</option>
+                <option value="fireflies">Светлячки (Fireflies)</option>
+                <option value="lightning">Молния (Lightning)</option>
+                <option value="snowstorm">Вьюга (Snowstorm)</option>
+                <option value="embers">Тлеющие угли (Embers)</option>
+                <option value="glitch">Глитч (Glitch Blocks)</option>
+                <option value="matrix_rain">Матрица (Matrix Code)</option>
+                <option value="swirl">Водоворот (Swirl)</option>
+              </select>
+            </div>
+            
+            <div id="controlsContainer"></div>
+            
+            <button id="btnExport" class="btn-cyber btn-cyber-outline" style="width: 100%; margin-top: 1.5rem; font-size: 1.2rem; padding: 0.5rem;">
+              Экспорт кода
+            </button>
+          </aside>
+
+          <!-- Main Workspace -->
+          <div class="tool-main" style="display: flex; flex-direction: column;">
+            
+            <div style="flex: 1; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); overflow: hidden; position: relative; background: #050505; cursor: crosshair;">
+                <canvas id="renderCanvas" style="width:100%; height:100%; display:block;"></canvas>
+                <div style="position:absolute; top:10px; left:10px; color:var(--color-text-muted); font-size:0.8rem; pointer-events:none;">Кликайте или водите мышкой по холсту</div>
+            </div>
+
+            <!-- Code Export Area -->
+            <div id="codeExportArea" style="display:none; margin-top: 1rem;">
+              <h4 style="color:var(--color-primary); margin-bottom:0.5rem;">Vanilla JS Класс:</h4>
+              <textarea id="codeTextarea" class="form-select" style="height: 250px; font-family: monospace; font-size: 12px;" readonly></textarea>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const presets = {
+      explosion: { count: 50, speed: 5, spread: 360, gravity: 0.1, life: 60, size: 4, colors: ['#ffaa00', '#ff0000'], fade: true, shape: 'circle' },
+      fire: { count: 10, speed: 2, spread: 30, gravity: -0.05, life: 40, size: 15, colors: ['#ffcc00', '#ff3300'], fade: true, shape: 'circle' },
+      magic: { count: 5, speed: 1, spread: 360, gravity: -0.01, life: 80, size: 2, colors: ['#00ffff', '#ffffff'], fade: true, shape: 'star' },
+      snow: { count: 2, speed: 1.5, spread: 180, gravity: 0.02, life: 200, size: 3, colors: ['#ffffff', '#ccffff'], fade: false, shape: 'circle' },
+      rain: { count: 4, speed: 8, spread: 5, gravity: 0.2, life: 100, size: 1, colors: ['#aaaaff', '#ddddff'], fade: false, shape: 'line' },
+      confetti: { count: 30, speed: 6, spread: 90, gravity: 0.15, life: 120, size: 6, colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00'], fade: false, shape: 'square' },
+      smoke: { count: 3, speed: 1, spread: 45, gravity: -0.02, life: 150, size: 25, colors: ['#555555', '#222222'], fade: true, shape: 'circle' },
+      stars: { count: 1, speed: 0.2, spread: 360, gravity: 0, life: 300, size: 1, colors: ['#ffffff', '#ffffcc'], fade: true, shape: 'star' },
+      bubbles: { count: 2, speed: 1.5, spread: 60, gravity: -0.05, life: 180, size: 8, colors: ['#00aaff', '#aaccff'], fade: true, shape: 'ring' },
+      laser: { count: 20, speed: 10, spread: 15, gravity: 0.05, life: 20, size: 2, colors: ['#00ff00', '#ffffff'], fade: true, shape: 'line' },
+      galaxy: { count: 15, speed: 0.5, spread: 360, gravity: 0, life: 150, size: 2, colors: ['#aa00ff', '#00aaff', '#ffffff'], fade: true, shape: 'circle' },
+      portal: { count: 40, speed: 2, spread: 360, gravity: -0.01, life: 50, size: 3, colors: ['#00ff00', '#00ffaa'], fade: true, shape: 'ring' },
+      blood: { count: 25, speed: 4, spread: 45, gravity: 0.2, life: 80, size: 5, colors: ['#880000', '#ff0000'], fade: false, shape: 'circle' },
+      poison: { count: 5, speed: 1, spread: 90, gravity: -0.03, life: 100, size: 10, colors: ['#55ff00', '#22aa00'], fade: true, shape: 'circle' },
+      meteor: { count: 1, speed: 12, spread: 0, gravity: 0, life: 100, size: 4, colors: ['#ff5500', '#ffff00'], fade: true, shape: 'line' },
+      sparks: { count: 15, speed: 6, spread: 180, gravity: 0.15, life: 40, size: 2, colors: ['#ffff00', '#ffffff'], fade: true, shape: 'line' },
+      hearts: { count: 3, speed: 2, spread: 60, gravity: -0.05, life: 120, size: 15, colors: ['#ff0055', '#ff99bb'], fade: true, shape: 'heart' },
+      dust: { count: 1, speed: 0.3, spread: 360, gravity: 0, life: 250, size: 2, colors: ['#dddddd', '#ffffff'], fade: true, shape: 'circle' },
+      fireflies: { count: 2, speed: 0.8, spread: 360, gravity: 0, life: 200, size: 4, colors: ['#ccff00', '#aaff00'], fade: true, shape: 'circle' },
+      lightning: { count: 5, speed: 15, spread: 360, gravity: 0, life: 10, size: 2, colors: ['#00ffff', '#ffffff'], fade: true, shape: 'line' },
+      snowstorm: { count: 10, speed: 12, spread: 20, gravity: 0.05, life: 150, size: 2, colors: ['#ffffff', '#e6f7ff'], fade: false, shape: 'line' },
+      embers: { count: 6, speed: 2, spread: 180, gravity: -0.1, life: 80, size: 3, colors: ['#ff3300', '#ff9900', '#330000'], fade: true, shape: 'square' },
+      glitch: { count: 4, speed: 0.1, spread: 360, gravity: 0, life: 10, size: 20, colors: ['#00ff00', '#ff00ff', '#00ffff'], fade: false, shape: 'square' },
+      matrix_rain: { count: 5, speed: 8, spread: 0, gravity: 0.2, life: 100, size: 2, colors: ['#00ff00', '#aaffaa'], fade: true, shape: 'line' },
+      swirl: { count: 10, speed: 5, spread: 360, gravity: 0, life: 90, size: 3, colors: ['#aa00ff', '#0000ff'], fade: true, shape: 'ring' }
+    };
+
+    let activeParams = {};
+    let particles = [];
+    let isDrawing = false;
+    let mouseX = 0, mouseY = 0;
+
+    const canvas = document.getElementById('renderCanvas');
+    const ctx = canvas.getContext('2d');
+    const presetSelect = document.getElementById('presetSelect');
+    const controlsContainer = document.getElementById('controlsContainer');
+    const btnExport = document.getElementById('btnExport');
+    
+    function resizeCanvas() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height || 400;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function buildUI(presetKey) {
+        const p = presets[presetKey];
+        activeParams = JSON.parse(JSON.stringify(p)); // deep copy
+        
+        controlsContainer.innerHTML = '';
+        
+        const config = [
+            { id: 'count', label: 'Частиц за кадр (Count)', min: 1, max: 100, step: 1 },
+            { id: 'speed', label: 'Скорость (Speed)', min: 0.1, max: 20, step: 0.1 },
+            { id: 'spread', label: 'Разброс угла (Spread)', min: 0, max: 360, step: 1 },
+            { id: 'gravity', label: 'Гравитация (Gravity)', min: -0.5, max: 0.5, step: 0.01 },
+            { id: 'life', label: 'Время жизни (Life)', min: 10, max: 500, step: 1 },
+            { id: 'size', label: 'Размер (Size)', min: 1, max: 100, step: 1 }
+        ];
+        
+        config.forEach(c => {
+            const group = document.createElement('div');
+            group.className = 'form-group';
+            group.innerHTML = `
+                <label class="form-label">${c.label}: <span id="val_${c.id}">${activeParams[c.id]}</span></label>
+                <input type="range" id="input_${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${activeParams[c.id]}">
+            `;
+            controlsContainer.appendChild(group);
+            
+            const input = group.querySelector(`#input_${c.id}`);
+            input.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                group.querySelector(`#val_${c.id}`).innerText = val;
+                activeParams[c.id] = val;
+            });
+        });
+        
+        // Shape select
+        const shapeGroup = document.createElement('div');
+        shapeGroup.className = 'form-group';
+        shapeGroup.innerHTML = `
+            <label class="form-label">Форма (Shape)</label>
+            <select id="input_shape" class="form-select">
+                <option value="circle">Круг (Circle)</option>
+                <option value="square">Квадрат (Square)</option>
+                <option value="star">Звезда (Star)</option>
+                <option value="line">Линия (Line)</option>
+                <option value="ring">Кольцо (Ring)</option>
+                <option value="heart">Сердце (Heart)</option>
+            </select>
+        `;
+        controlsContainer.appendChild(shapeGroup);
+        const shapeSelect = shapeGroup.querySelector('#input_shape');
+        shapeSelect.value = activeParams.shape;
+        shapeSelect.addEventListener('change', e => activeParams.shape = e.target.value);
+        
+        // Colors
+        const colorGroup = document.createElement('div');
+        colorGroup.className = 'form-group';
+        let colorHtml = `<label class="form-label">Цвета (Палитра)</label><div class="color-inputs">`;
+        for(let i=0; i<4; i++) {
+            const col = activeParams.colors[i] || '#000000';
+            colorHtml += `<input type="color" id="color_${i}" value="${col}" ${i >= activeParams.colors.length ? 'style="display:none;"' : ''}>`;
+        }
+        colorHtml += `</div>`;
+        colorGroup.innerHTML = colorHtml;
+        controlsContainer.appendChild(colorGroup);
+        
+        for(let i=0; i<4; i++) {
+            const input = colorGroup.querySelector(`#color_${i}`);
+            if(input) {
+                input.addEventListener('input', (e) => {
+                    activeParams.colors[i] = e.target.value;
+                });
+            }
+        }
+    }
+
+    presetSelect.addEventListener('change', e => {
+        buildUI(e.target.value);
+        document.getElementById('codeExportArea').style.display = 'none';
+        particles = [];
+    });
+    
+    // Mouse interaction
+    canvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        emitAtMouse(e);
+    });
+    canvas.addEventListener('mousemove', (e) => {
+        if(isDrawing) emitAtMouse(e);
+    });
+    canvas.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('mouseleave', () => isDrawing = false);
+    
+    function emitAtMouse(e) {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        mouseY = e.clientY - rect.top;
+        
+        // Determine emit direction based on preset
+        let baseAngle = -Math.PI / 2; // Upwards usually
+        if (activeParams.shape === 'line' && activeParams.spread < 45) {
+            baseAngle = Math.PI / 2; // rain falls down
+        }
+
+        for (let i = 0; i < activeParams.count; i++) {
+            const spreadRad = (activeParams.spread * Math.PI) / 180;
+            const angle = baseAngle + (Math.random() - 0.5) * spreadRad;
+            const speed = activeParams.speed * (0.5 + Math.random() * 0.5);
+            
+            particles.push({
+                x: mouseX,
+                y: mouseY,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: activeParams.life * (0.5 + Math.random() * 0.5),
+                maxLife: activeParams.life,
+                size: activeParams.size * (0.5 + Math.random() * 0.5),
+                color: activeParams.colors[Math.floor(Math.random() * activeParams.colors.length)],
+                shape: activeParams.shape,
+                gravity: activeParams.gravity
+            });
+        }
+    }
+
+    function render() {
+        ctx.fillStyle = 'rgba(5, 5, 5, 0.3)'; // Trail effect
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += p.gravity;
+            p.life--;
+            
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+                continue;
+            }
+            
+            const alpha = activeParams.fade ? (p.life / p.maxLife) : 1;
+            ctx.globalAlpha = Math.max(0, alpha);
+            ctx.fillStyle = p.color;
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            if (p.shape === 'circle') {
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (p.shape === 'square') {
+                // simple rotation for square
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.life * 0.1);
+                ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                ctx.restore();
+            } else if (p.shape === 'line') {
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x - p.vx * 2, p.y - p.vy * 2);
+                ctx.stroke();
+            } else if (p.shape === 'ring') {
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (p.shape === 'star') {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.life * 0.05);
+                for(let j=0; j<5; j++) {
+                    ctx.lineTo(0, -p.size);
+                    ctx.rotate(Math.PI / 5);
+                    ctx.lineTo(0, -p.size * 0.4);
+                    ctx.rotate(Math.PI / 5);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            } else if (p.shape === 'heart') {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                const s = p.size * 0.05;
+                ctx.scale(s, s);
+                ctx.moveTo(0, -5);
+                ctx.bezierCurveTo(0, -15, -15, -25, -25, -15);
+                ctx.bezierCurveTo(-40, 0, -10, 25, 0, 40);
+                ctx.bezierCurveTo(10, 25, 40, 0, 25, -15);
+                ctx.bezierCurveTo(15, -25, 0, -15, 0, -5);
+                ctx.fill();
+                ctx.restore();
+            }
+            ctx.globalAlpha = 1;
+        }
+        
+        requestAnimationFrame(render);
+    }
+    
+    buildUI('explosion');
+    render();
+
+    btnExport.addEventListener('click', () => {
+        const area = document.getElementById('codeExportArea');
+        area.style.display = 'block';
+        
+        const code = `
+// Универсальный генератор частиц для Playables (без зависимостей)
+class ParticleSystem {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.particles = [];
+        
+        // Настройки эффекта
+        this.params = ${JSON.stringify(activeParams, null, 4)};
+    }
+    
+    emit(x, y) {
+        let baseAngle = -Math.PI / 2;
+        if (this.params.shape === 'line' && this.params.spread < 45) baseAngle = Math.PI / 2;
+        
+        for (let i = 0; i < this.params.count; i++) {
+            const spreadRad = (this.params.spread * Math.PI) / 180;
+            const angle = baseAngle + (Math.random() - 0.5) * spreadRad;
+            const speed = this.params.speed * (0.5 + Math.random() * 0.5);
+            
+            this.particles.push({
+                x: x, y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: this.params.life * (0.5 + Math.random() * 0.5),
+                maxLife: this.params.life,
+                size: this.params.size * (0.5 + Math.random() * 0.5),
+                color: this.params.colors[Math.floor(Math.random() * this.params.colors.length)]
+            });
+        }
+    }
+    
+    updateAndDraw() {
+        // Очистка или трейл эффект
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // Для прозрачного фона используйте clearRect
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            let p = this.particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += this.params.gravity;
+            p.life--;
+            
+            if (p.life <= 0) {
+                this.particles.splice(i, 1);
+                continue;
+            }
+            
+            this.ctx.globalAlpha = this.params.fade ? Math.max(0, p.life / p.maxLife) : 1;
+            this.ctx.fillStyle = p.color;
+            this.ctx.strokeStyle = p.color;
+            this.ctx.lineWidth = 2;
+            
+            this.ctx.beginPath();
+            if (this.params.shape === 'circle') {
+                this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                this.ctx.fill();
+            } else if (this.params.shape === 'square') {
+                this.ctx.save();
+                this.ctx.translate(p.x, p.y);
+                this.ctx.rotate(p.life * 0.1);
+                this.ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                this.ctx.restore();
+            } else if (this.params.shape === 'line') {
+                this.ctx.moveTo(p.x, p.y);
+                this.ctx.lineTo(p.x - p.vx * 2, p.y - p.vy * 2);
+                this.ctx.stroke();
+            } else if (this.params.shape === 'ring') {
+                this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                this.ctx.stroke();
+            } else if (this.params.shape === 'star') {
+                this.ctx.save();
+                this.ctx.translate(p.x, p.y);
+                this.ctx.rotate(p.life * 0.05);
+                for(let j=0; j<5; j++) {
+                    this.ctx.lineTo(0, -p.size);
+                    this.ctx.rotate(Math.PI / 5);
+                    this.ctx.lineTo(0, -p.size * 0.4);
+                    this.ctx.rotate(Math.PI / 5);
+                }
+                this.ctx.closePath();
+                this.ctx.fill();
+                this.ctx.restore();
+            } else if (this.params.shape === 'heart') {
+                this.ctx.save();
+                this.ctx.translate(p.x, p.y);
+                const s = p.size * 0.05;
+                this.ctx.scale(s, s);
+                this.ctx.moveTo(0, -5);
+                this.ctx.bezierCurveTo(0, -15, -15, -25, -25, -15);
+                this.ctx.bezierCurveTo(-40, 0, -10, 25, 0, 40);
+                this.ctx.bezierCurveTo(10, 25, 40, 0, 25, -15);
+                this.ctx.bezierCurveTo(15, -25, 0, -15, 0, -5);
+                this.ctx.fill();
+                this.ctx.restore();
+            } else {
+                this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        }
+        this.ctx.globalAlpha = 1;
+    }
+}
+
+// Пример использования:
+// const ps = new ParticleSystem('myCanvas');
+// window.addEventListener('click', e => ps.emit(e.clientX, e.clientY));
+// function loop() { ps.updateAndDraw(); requestAnimationFrame(loop); }
+// loop();
+        `;
+        document.getElementById('codeTextarea').value = code.trim();
+    });
+  </script>
+</body>
+</html>
