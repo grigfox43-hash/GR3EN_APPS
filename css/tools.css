@@ -240,3 +240,9 @@ input[type=range]::-webkit-slider-runnable-track {
   background: rgba(255,255,255,0.2);
   border-radius: 2px;
 }
+
+/* Google Translate Hide */
+body { top: 0 !important; }
+.goog-te-banner-frame { display: none !important; }
+.goog-tooltip { display: none !important; }
+.goog-te-combo { display: none !important; }
