@@ -399,6 +399,8 @@
         } else {
           log('ПРЕДУПРЕЖДЕНИЕ: Google Ads требует метатег ad.size (например, <meta name="ad.size" content="width=320,height=480">).', 'warn', `Для Google Ads (UAC) обязательно наличие метатега с размерами креатива.\n\nДобавьте в <head>:\n<meta name="ad.size" content="width=320,height=480">`);
         }
+      } // <-- MISSING BRACE FIXED
+
       // Check Mintegral specific requirements
       if (net.name === 'Mintegral') {
         if (!html.includes('window.gameReady')) {
