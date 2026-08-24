@@ -95,6 +95,38 @@
               <div class="log-entry log-info"><span class="log-icon">></span><span class="log-text">Готов к проверке. Выберите файл.</span></div>
               </div>
             </div>
+            <div id="previewContainer" style="display: none; flex-direction: column; align-items: center; margin-top: 2rem; background: #0a0c10; border: 1px solid rgba(255,255,255,0.05); padding: 2rem; border-radius: 16px;">
+              <h3 style="color: #fff; margin-bottom: 2rem; font-family: var(--font-display); font-size: 1.5rem;">ПРЕВЬЮ</h3>
+              
+              <!-- Mock Phone -->
+              <div id="deviceMock" style="width: 393px; height: 852px; background: #000; border: 14px solid #1a1a1a; border-radius: 40px; position: relative; overflow: hidden; box-shadow: 0 0 40px rgba(0,0,0,0.5); transition: width 0.3s, height 0.3s;">
+                <!-- Dynamic notch -->
+                <div id="deviceNotch" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 30px; background: #1a1a1a; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; z-index: 10;"></div>
+                <iframe id="previewIframe" style="width: 100%; height: 100%; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+              </div>
+
+              <!-- Controls -->
+              <div class="device-controls" style="display: flex; gap: 1rem; margin-top: 2rem; background: #1f1f23; padding: 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                <select id="deviceSelect" class="form-select" style="width: 180px; padding: 0.6rem; background: #2b2b30; border: none; font-size: 0.9rem; color: #fff; border-radius: 8px;">
+                  <option value="393x852">iPhone 16 Pro</option>
+                  <option value="428x926">iPhone 14 Plus</option>
+                  <option value="1024x1366">iPad Pro</option>
+                </select>
+                
+                <button id="btnOrientation" style="background: #2b2b30; color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; transition: background 0.2s;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect></svg>
+                  <span>Landscape</span>
+                </button>
+                
+                <button id="btnMute" style="background: #2b2b30; color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem; border-radius: 8px; cursor: pointer; transition: background 0.2s;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                </button>
+
+                <button id="btnReload" style="background: #2b2b30; color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem; border-radius: 8px; cursor: pointer; transition: background 0.2s;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                </button>
+              </div>
+            </div>
 
           </div>
         </div>
@@ -206,18 +238,67 @@
       }
     }
 
+    let currentPlayableHtml = '';
+    const previewContainer = document.getElementById('previewContainer');
+    const previewIframe = document.getElementById('previewIframe');
+    const deviceMock = document.getElementById('deviceMock');
+    const deviceSelect = document.getElementById('deviceSelect');
+    const btnOrientation = document.getElementById('btnOrientation');
+    const btnReload = document.getElementById('btnReload');
+    let isLandscape = false;
+
+    deviceSelect.addEventListener('change', updateDeviceSize);
+    btnOrientation.addEventListener('click', () => {
+      isLandscape = !isLandscape;
+      btnOrientation.innerHTML = isLandscape ? 
+        `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect></svg><span>Portrait</span>` :
+        `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect></svg><span>Landscape</span>`;
+      updateDeviceSize();
+    });
+    btnReload.addEventListener('click', () => {
+      if (currentPlayableHtml) previewPlayable(currentPlayableHtml);
+    });
+
+    function updateDeviceSize() {
+      const dims = deviceSelect.value.split('x');
+      let w = parseInt(dims[0]);
+      let h = parseInt(dims[1]);
+      if (isLandscape) {
+        [w, h] = [h, w]; // Swap
+      }
+      // Scale down if it's a huge device like iPad to fit the screen
+      const maxW = 600;
+      if (w > maxW) {
+        const ratio = maxW / w;
+        w = maxW;
+        h = h * ratio;
+      }
+      deviceMock.style.width = w + 'px';
+      deviceMock.style.height = h + 'px';
+    }
+
+    function previewPlayable(html) {
+      currentPlayableHtml = html;
+      previewContainer.style.display = 'flex';
+      previewIframe.srcdoc = html;
+      updateDeviceSize();
+      // Scroll to preview
+      setTimeout(() => previewContainer.scrollIntoView({ behavior: 'smooth', block: 'start' }), 500);
+    }
+
     async function validateZip(file, net) {
       try {
         const zip = await JSZip.loadAsync(file);
         let hasIndex = false;
         let fileCount = 0;
+        let indexHtml = "";
         
         for (let [filename, zipEntry] of Object.entries(zip.files)) {
           if (!zipEntry.dir) fileCount++;
           if (filename === 'index.html') {
             hasIndex = true;
-            const htmlContent = await zipEntry.async("string");
-            validateHtmlContent(htmlContent, net);
+            indexHtml = await zipEntry.async("string");
+            validateHtmlContent(indexHtml, net);
           }
         }
 
@@ -225,6 +306,7 @@
           log('ОШИБКА: index.html не найден в корне архива!', 'error', 'Архив не содержит файл index.html в корневой директории.\n\nЧастая ошибка: вы запаковали папку с проектом, а не сами файлы. Выделите все файлы внутри папки (включая index.html) и создайте ZIP архив из них.');
         } else {
           log('index.html найден в корне архива.', 'success');
+          previewPlayable(indexHtml);
         }
 
         if (net.singleFile && fileCount > 1) {
@@ -242,6 +324,7 @@
     async function validateHtmlFile(file, net) {
       const text = await file.text();
       validateHtmlContent(text, net);
+      previewPlayable(text);
       log('Проверка HTML файла завершена.', 'info');
     }
 
