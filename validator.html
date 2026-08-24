@@ -47,31 +47,15 @@
         </div>
 
         <div class="tool-layout">
-          <!-- Settings Sidebar -->
+          <!-- Validation Summary Sidebar -->
           <aside class="tool-sidebar">
-            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">НАСТРОЙКИ ВАЛИДАЦИИ</h3>
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">СТАТУС ПЛОЩАДОК</h3>
             
             <div class="form-group">
-              <label class="form-label" for="networkSelect">Рекламная сеть</label>
-              <select id="networkSelect" class="form-select">
-                <option value="applovin">AppLovin</option>
-                <option value="ironsource">ironSource</option>
-                <option value="mintegral">Mintegral</option>
-                <option value="unity">Unity Ads</option>
-                <option value="vungle">Vungle (Liftoff)</option>
-                <option value="tiktok">TikTok (Pangle)</option>
-                <option value="meta">Meta (Facebook)</option>
-                <option value="google">Google Ads (UAC)</option>
-                <option value="snapchat">Snapchat</option>
-                <option value="chartboost">Chartboost</option>
-                <option value="generic">Общая проверка (Generic)</option>
-              </select>
-            </div>
-            
-            <div class="form-group" style="margin-top: 2rem;">
-              <h4 style="color: #fff; margin-bottom: 0.5rem;">Требования сети:</h4>
-              <ul id="networkReqs" style="color: var(--color-text-muted); font-size: 0.9rem; padding-left: 1.2rem;">
-                <!-- Updated dynamically -->
+              <p style="color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Автоматическая проверка по всем сетям. Поддерживается HTML, одиночный ZIP или ZIP с архивами площадок.</p>
+              <ul id="networkStatusList" style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.5rem;">
+                <!-- Dynamically filled -->
+                <li style="color: #64748b;">Ожидание загрузки файла...</li>
               </ul>
             </div>
           </aside>
@@ -85,7 +69,7 @@
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
               </svg>
-              <p>Перетащите ZIP архив или HTML файл сюда<br><span style="font-size:0.9rem;">или нажмите для выбора файла</span></p>
+              <p>Перетащите сборку или архив со сборками<br><span style="font-size:0.9rem;">Один HTML, ZIP или ZIP с архивами для всех площадок</span></p>
               <input type="file" id="fileInput" accept=".zip,.html" style="display:none;">
             </div>
 
@@ -119,24 +103,23 @@
       generic: { name: 'Generic', maxSize: 5 * 1024 * 1024, singleFile: false, mraid: false, customClick: 'none', clickDesc: 'none' }
     };
 
-    const networkSelect = document.getElementById('networkSelect');
-    const networkReqs = document.getElementById('networkReqs');
     const dropzone = document.getElementById('dropzone');
     const fileInput = document.getElementById('fileInput');
     const logBox = document.getElementById('logBox');
+    const networkStatusList = document.getElementById('networkStatusList');
 
-    function updateReqs() {
-      const net = networks[networkSelect.value];
-      let html = `<li>Макс размер: ${net.maxSize / 1024 / 1024} MB</li>`;
-      html += `<li>Архив/Файл: ${net.singleFile ? 'Только 1 файл (index.html)' : 'ZIP архив (index.html в корне)'}</li>`;
-      html += `<li>Ассеты: Встроены (Base64)</li>`;
-      if (net.mraid) html += `<li>MRAID: Требуется mraid.js</li>`;
-      if (net.clickDesc !== 'none') html += `<li>Клик URL: ${net.clickDesc}</li>`;
-      networkReqs.innerHTML = html;
+    function initNetworkStatus() {
+      networkStatusList.innerHTML = '';
+      for (const key of Object.keys(networks)) {
+        if (key === 'generic') continue;
+        const li = document.createElement('li');
+        li.id = `status-${key}`;
+        li.style = 'padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; display: flex; justify-content: space-between; font-size: 0.9rem;';
+        li.innerHTML = `<span>${networks[key].name}</span><span style="color: #64748b;">⏳ Ожидание</span>`;
+        networkStatusList.appendChild(li);
+      }
     }
-
-    networkSelect.addEventListener('change', updateReqs);
-    updateReqs();
+    initNetworkStatus();
 
     function log(msg, type = 'info', details = null) {
       const icons = { info: '>', success: '✓', warn: '⚠', error: '✕' };
@@ -184,76 +167,125 @@
 
     async function handleFile(file) {
       clearLog();
-      log(`Анализ файла: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 'info');
-      const net = networks[networkSelect.value];
+      initNetworkStatus();
+      log(`Анализ загруженного файла: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 'info');
 
-      if (file.size > net.maxSize) {
-        log(`ОШИБКА: Размер файла превышает лимит ${net.maxSize / 1024 / 1024} MB`, 'error', `Ваш файл весит ${(file.size / 1024 / 1024).toFixed(2)} MB, что превышает ограничение площадки.\n\nПопробуйте сжать изображения (используйте TinyPNG или TexturePacker), минифицировать JS/CSS или уменьшить качество аудио.`);
-        return;
-      } else {
-        log(`Размер файла в норме (Лимит: ${net.maxSize / 1024 / 1024} MB)`, 'success');
-      }
-
-      if (file.name.endsWith('.zip')) {
-        if (net.singleFile) {
-          log(`ПРЕДУПРЕЖДЕНИЕ: Сеть ${net.name} предпочитает один HTML файл, а не ZIP.`, 'warn', `Сеть поддерживает загрузку одного HTML файла, где все ресурсы внедрены внутрь (Base64).\n\nВы загрузили ZIP архив. Убедитесь, что площадка поддерживает архивы в вашем случае.`);
+      if (file.name.endsWith('.html')) {
+        const text = await file.text();
+        await runAllNetworksValidation(file.name, file.size, text, false);
+      } else if (file.name.endsWith('.zip')) {
+        try {
+          const zip = await JSZip.loadAsync(file);
+          // Check if it's a master zip (contains other zips)
+          const innerZips = Object.keys(zip.files).filter(f => f.endsWith('.zip'));
+          
+          if (innerZips.length > 0) {
+            log(`Обнаружен архив с архивами. Найдено ${innerZips.length} сборок. Распределяем...`, 'info');
+            for (let innerName of innerZips) {
+               const innerData = await zip.files[innerName].async("blob");
+               innerData.name = innerName;
+               const innerZip = await JSZip.loadAsync(innerData);
+               let hasIndex = false;
+               let htmlText = "";
+               let fileCount = 0;
+               for (let [filename, zipEntry] of Object.entries(innerZip.files)) {
+                 if (!zipEntry.dir) fileCount++;
+                 if (filename === 'index.html') {
+                   hasIndex = true;
+                   htmlText = await zipEntry.async("string");
+                 }
+               }
+               
+               // Try to guess network by filename
+               const matchedNetKey = Object.keys(networks).find(k => innerName.toLowerCase().includes(k)) || 'generic';
+               log(`--- Проверка внутренней сборки: ${innerName} (как ${networks[matchedNetKey].name}) ---`, 'info');
+               
+               if (!hasIndex) {
+                 log(`ОШИБКА: index.html не найден внутри ${innerName}`, 'error');
+                 continue;
+               }
+               runSingleNetworkValidation(matchedNetKey, innerData.size, htmlText, true, fileCount);
+            }
+          } else {
+            // It's a single zip build
+            let hasIndex = false;
+            let htmlText = "";
+            let fileCount = 0;
+            for (let [filename, zipEntry] of Object.entries(zip.files)) {
+              if (!zipEntry.dir) fileCount++;
+              if (filename === 'index.html') {
+                hasIndex = true;
+                htmlText = await zipEntry.async("string");
+              }
+            }
+            if (!hasIndex) {
+               log(`ОШИБКА: index.html не найден в корне архива!`, 'error');
+               return;
+            }
+            await runAllNetworksValidation(file.name, file.size, htmlText, true, fileCount);
+          }
+        } catch (e) {
+          log(`ОШИБКА чтения ZIP: ${e.message}`, 'error');
         }
-        await validateZip(file, net);
-      } else if (file.name.endsWith('.html')) {
-        await validateHtmlFile(file, net);
       } else {
         log(`ОШИБКА: Неподдерживаемый формат файла. Загрузите ZIP или HTML.`, 'error');
       }
     }
 
-    async function validateZip(file, net) {
-      try {
-        const zip = await JSZip.loadAsync(file);
-        let hasIndex = false;
-        let fileCount = 0;
-        
-        for (let [filename, zipEntry] of Object.entries(zip.files)) {
-          if (!zipEntry.dir) fileCount++;
-          if (filename === 'index.html') {
-            hasIndex = true;
-            const htmlContent = await zipEntry.async("string");
-            validateHtmlContent(htmlContent, net);
-          }
-        }
-
-        if (!hasIndex) {
-          log('ОШИБКА: index.html не найден в корне архива!', 'error', 'Архив не содержит файл index.html в корневой директории.\n\nЧастая ошибка: вы запаковали папку с проектом, а не сами файлы. Выделите все файлы внутри папки (включая index.html) и создайте ZIP архив из них.');
-        } else {
-          log('index.html найден в корне архива.', 'success');
-        }
-
-        if (net.singleFile && fileCount > 1) {
-          log(`ОШИБКА: Сеть ${net.name} требует сборку в 1 файл (Single File). В архиве ${fileCount} файлов.`, 'error', `Эта рекламная сеть принимает только ОДИН файл index.html.\n\nВам необходимо использовать инструмент "Playable Inliner" на нашем сайте, чтобы внедрить все ваши изображения, скрипты и стили прямо внутрь HTML файла (в виде Base64-строк).`);
-        } else {
-          log(`Количество файлов в архиве: ${fileCount}`, 'info');
-        }
-
-        log('Проверка ZIP архива завершена.', 'info');
-      } catch (e) {
-        log(`ОШИБКА чтения ZIP: ${e.message}`, 'error');
+    async function runAllNetworksValidation(filename, size, htmlText, isZip, fileCount = 1) {
+      log('Запускаем одновременную проверку для всех рекламных сетей...', 'info');
+      
+      for (const [netKey, net] of Object.entries(networks)) {
+        if (netKey === 'generic') continue; // Skip generic for 'all networks' mode
+        log(`\n--- Проверка для ${net.name} ---`, 'info');
+        runSingleNetworkValidation(netKey, size, htmlText, isZip, fileCount);
       }
     }
 
-    async function validateHtmlFile(file, net) {
-      const text = await file.text();
-      validateHtmlContent(text, net);
-      log('Проверка HTML файла завершена.', 'info');
+    function runSingleNetworkValidation(netKey, size, htmlText, isZip, fileCount) {
+      if (netKey === 'generic') return;
+      const net = networks[netKey];
+      let errors = 0;
+      let warns = 0;
+
+      if (size > net.maxSize) {
+        log(`[${net.name}] ОШИБКА: Превышен лимит размера (${(size / 1024 / 1024).toFixed(2)} MB > ${net.maxSize / 1024 / 1024} MB)`, 'error');
+        errors++;
+      }
+      
+      if (isZip && net.singleFile && fileCount > 1) {
+        log(`[${net.name}] ОШИБКА: Требуется 1 файл (Single HTML), а загружен ZIP из ${fileCount} файлов.`, 'error');
+        errors++;
+      }
+
+      validateHtmlContent(htmlText, net, () => errors++, () => warns++);
+
+      const statusLi = document.getElementById(`status-${netKey}`);
+      if (statusLi) {
+        if (errors === 0 && warns === 0) {
+          statusLi.innerHTML = `<span>${net.name}</span><span style="color: #1ED65B;">✓ PASS</span>`;
+          log(`[${net.name}] УСПЕХ: Сборка полностью соответствует требованиям.`, 'success');
+        } else if (errors === 0 && warns > 0) {
+          statusLi.innerHTML = `<span>${net.name}</span><span style="color: #ffcc00;">⚠ WARN (${warns})</span>`;
+          log(`[${net.name}] ПРЕДУПРЕЖДЕНИЕ: Ошибок нет, предупреждений: ${warns}.`, 'warn');
+        } else {
+          statusLi.innerHTML = `<span>${net.name}</span><span style="color: #ff3333;">✕ FAIL (${errors})</span>`;
+          log(`[${net.name}] НЕУДАЧА: Найдено ошибок: ${errors}, предупреждений: ${warns}.`, 'error');
+        }
+      }
     }
 
-    function validateHtmlContent(html, net) {
-      log('Анализ содержимого HTML...', 'info');
+    function validateHtmlContent(html, net, onErr, onWarn) {
+      if(!onErr) onErr = () => {};
+      if(!onWarn) onWarn = () => {};
       
       // Check MRAID
       if (net.mraid) {
         if (html.includes('mraid.js')) {
-          log('mraid.js найден (ожидается для данной сети).', 'success');
+          // ok
         } else {
-          log(`ОШИБКА: ${net.name} требует mraid.js, но он не найден в HTML.`, 'error', `Рекламная сеть ${net.name} требует наличие скрипта MRAID для отслеживания показов и кликов.\n\nВам необходимо добавить тег:\n<script src="mraid.js"><` + `/script>\n\nВнутрь тега <head> вашего index.html файла.`);
+          log(`[${net.name}] ОШИБКА: Требуется mraid.js, но он не найден в HTML.`, 'error');
+          onErr();
         }
       }
 
@@ -261,9 +293,10 @@
       if (net.customClick !== 'none') {
         const searchTerms = net.customClick;
         if (html.includes(searchTerms)) {
-          log(`Скрипт клика найден: ${net.clickDesc}`, 'success');
+          // ok
         } else {
-          log(`ПРЕДУПРЕЖДЕНИЕ: Не найден вызов ${net.clickDesc}. Убедитесь, что логика клика реализована верно.`, 'warn', `Сеть требует специфичный вызов для обработки клика (CTA).\n\nОжидаемый вызов: ${net.clickDesc}\n\nУбедитесь, что он вызывается при нажатии на кнопку "Скачать/Играть".`);
+          log(`[${net.name}] ПРЕДУПРЕЖДЕНИЕ: Не найден вызов ${net.clickDesc}.`, 'warn');
+          onWarn();
         }
       }
 
@@ -271,7 +304,6 @@
       const externalLinkRegex = /(?:src|href)=["'](http|https):\/\/[^"']+["']/gi;
       const externalsRaw = [...html.matchAll(externalLinkRegex)];
       
-      // Filter out allowed external links based on network
       let allowedExternals = [];
       if (net.name === 'Google Ads (UAC)') {
         allowedExternals.push('tpc.googlesyndication.com');
@@ -286,43 +318,45 @@
       });
 
       if (externals.length > 0) {
-        const foundUrls = externals.map(m => m[0]).join('\n');
-        log(`ОШИБКА: Обнаружены внешние ссылки! Найдено: ${externals.length}`, 'error', `Playable Ads должны работать полностью оффлайн (ассеты заинлайнены).\n\nНайден следующий код с внешними ссылками:\n\n${foundUrls}\n\nКонвертируйте картинки/аудио в Base64, а внешние скрипты и стили скопируйте внутрь HTML. (Используйте наш Playable Inliner)`);
-      } else {
-        log('Внешних загрузок сторонних ресурсов не обнаружено.', 'success');
+        log(`[${net.name}] ОШИБКА: Обнаружены внешние ссылки! Найдено: ${externals.length}`, 'error');
+        onErr();
       }
 
       // Check relative links (only relevant for single file networks)
       const relativeRegex = /(?:src|href)=["'](?!http|https|data:|mraid\.js|dapi\.js|#|javascript:)([^"']+)["']/gi;
       const relatives = [...html.matchAll(relativeRegex)];
       if (relatives.length > 0 && net.singleFile) {
-        // limit to first 10 to avoid massive modal
-        const foundRels = relatives.slice(0, 10).map(m => m[0]).join('\n') + (relatives.length > 10 ? '\n...и еще ' + (relatives.length - 10) + ' файлов.' : '');
-        log(`ОШИБКА: Найдены относительные пути (${relatives.length}), хотя сеть требует один файл.`, 'error', `Сеть ${net.name} принимает только один HTML файл.\nОднако в вашем коде найдены ссылки на локальные файлы (которые потеряются при загрузке):\n\n${foundRels}\n\nЗаинлайньте все ассеты в HTML (используйте наш Playable Inliner).`);
+        log(`[${net.name}] ОШИБКА: Найдены относительные пути (${relatives.length}), хотя сеть требует один файл.`, 'error');
+        onErr();
       }
 
       // Check Google Ads specific requirements
       if (net.name === 'Google Ads (UAC)') {
         // Check exitapi
         if (html.includes('exitapi.js')) {
-          log('Скрипт exitapi.js найден.', 'success');
+          // ok
         } else {
-          log('ОШИБКА: Google Ads требует скрипт exitapi.js', 'error', `Для Google Ads (UAC) обязательно подключение API выходов.\n\nДобавьте в <head>:\n<script src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js"><` + `/script>`);
+          log(`[${net.name}] ОШИБКА: Google Ads требует скрипт exitapi.js`, 'error');
+          onErr();
         }
         
         // Check ad.size
         if (html.includes('ad.size')) {
-          log('Метатег ad.size найден.', 'success');
+          // ok
         } else {
-          log('ПРЕДУПРЕЖДЕНИЕ: Google Ads требует метатег ad.size (например, <meta name="ad.size" content="width=320,height=480">).', 'warn', `Для Google Ads (UAC) обязательно наличие метатега с размерами креатива.\n\nДобавьте в <head>:\n<meta name="ad.size" content="width=320,height=480">`);
+          log(`[${net.name}] ПРЕДУПРЕЖДЕНИЕ: Google Ads требует метатег ad.size`, 'warn');
+          onWarn();
         }
+      }
       // Check Mintegral specific requirements
       if (net.name === 'Mintegral') {
         if (!html.includes('window.gameReady')) {
-          log('ПРЕДУПРЕЖДЕНИЕ: Mintegral рекомендует использовать window.gameReady()', 'warn', `Сеть Mintegral использует коллбеки для контроля отображения креста закрытия.\n\nРекомендуется вызывать:\nwindow.gameReady && window.gameReady();\n\nСразу после полной инициализации игры.`);
+          log(`[${net.name}] ПРЕДУПРЕЖДЕНИЕ: Mintegral рекомендует использовать window.gameReady()`, 'warn');
+          onWarn();
         }
         if (!html.includes('window.gameEnd')) {
-          log('ПРЕДУПРЕЖДЕНИЕ: Mintegral рекомендует использовать window.gameEnd()', 'warn', `Сеть Mintegral использует коллбек для понимания, когда игра завершена (победа или проигрыш).\n\nВызовите:\nwindow.gameEnd && window.gameEnd();\nв конце геймплея.`);
+          log(`[${net.name}] ПРЕДУПРЕЖДЕНИЕ: Mintegral рекомендует использовать window.gameEnd()`, 'warn');
+          onWarn();
         }
       }
     }
