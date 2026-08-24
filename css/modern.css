@@ -1104,3 +1104,12 @@ body {
     padding: 1.5rem 1.25rem;
   }
 }
+
+/* Google Translate Hide aggressive */
+body { top: 0 !important; }
+.skiptranslate iframe { display: none !important; visibility: hidden !important; }
+.goog-te-banner-frame { display: none !important; visibility: hidden !important; }
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf { display: none !important; }
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf-ti6hGc { display: none !important; }
+#goog-gt-tt { display: none !important; }
+.goog-tooltip { display: none !important; }
