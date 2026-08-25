@@ -397,6 +397,16 @@
       
       const interceptor = `<script>
         (function() {
+          // 0. Force preserveDrawingBuffer for screenshots
+          const originalGetContext = HTMLCanvasElement.prototype.getContext;
+          HTMLCanvasElement.prototype.getContext = function(type, attributes) {
+            if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') {
+              attributes = attributes || {};
+              attributes.preserveDrawingBuffer = true;
+            }
+            return originalGetContext.call(this, type, attributes);
+          };
+
           // 1. Console Interceptor
           const originalError = console.error;
           const originalWarn = console.warn;
