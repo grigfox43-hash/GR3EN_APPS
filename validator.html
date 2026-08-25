@@ -495,15 +495,75 @@
       }
     });
 
+    function createCompositeCanvas(gameCanvas) {
+      const mock = document.getElementById('deviceMock');
+      const w = mock.offsetWidth;
+      const h = mock.offsetHeight;
+      const cvs = document.createElement('canvas');
+      cvs.width = w;
+      cvs.height = h;
+      const ctx = cvs.getContext('2d');
+      
+      const drawFrame = () => {
+        ctx.clearRect(0, 0, w, h);
+        
+        // Draw phone background (black frame)
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.roundRect(0, 0, w, h, 46);
+        ctx.fill();
+        
+        // Draw Game Canvas inside padding (12px)
+        if (gameCanvas) {
+           ctx.save();
+           ctx.beginPath();
+           ctx.roundRect(12, 12, w - 24, h - 24, 34);
+           ctx.clip();
+           ctx.drawImage(gameCanvas, 12, 12, w - 24, h - 24);
+           ctx.restore();
+        }
+        
+        // Draw Notch
+        const notch = document.getElementById('deviceNotch');
+        if (notch.style.display !== 'none') {
+          const nw = parseInt(notch.style.width) || 0;
+          const nh = parseInt(notch.style.height) || 0;
+          let nx = 0, ny = 0;
+          
+          if (notch.style.top === '50%') ny = h/2 - nh/2;
+          else ny = parseInt(notch.style.top);
+          
+          if (notch.style.left === '50%') nx = w/2 - nw/2;
+          else nx = parseInt(notch.style.left);
+          
+          let radii = [20];
+          const val = deviceSelect.value;
+          if (val === '414x896' || val === '428x926') {
+             if (isLandscape) radii = [0, 20, 20, 0];
+             else radii = [0, 0, 20, 20];
+          }
+          
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          ctx.roundRect(nx, ny, nw, nh, radii);
+          ctx.fill();
+        }
+      };
+      
+      return { cvs, drawFrame };
+    }
+
     const btnScreenshot = document.getElementById('btnScreenshot');
     if (btnScreenshot) {
       btnScreenshot.addEventListener('click', () => {
         const iframeCanvas = previewIframe.contentDocument.querySelector('canvas');
         if (iframeCanvas) {
-          const url = iframeCanvas.toDataURL('image/png');
+          const comp = createCompositeCanvas(iframeCanvas);
+          comp.drawFrame();
+          const url = comp.cvs.toDataURL('image/png');
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'screenshot.png';
+          a.download = 'screenshot_mockup.png';
           a.click();
         } else {
           log('ОШИБКА: Canvas не найден внутри iframe для скриншота.', 'error');
@@ -514,6 +574,7 @@
     const btnRecord = document.getElementById('btnRecord');
     let mediaRecorder;
     let recordedChunks = [];
+    let recordAnimFrame;
     if (btnRecord) {
       btnRecord.addEventListener('click', () => {
         const iframeCanvas = previewIframe.contentDocument.querySelector('canvas');
@@ -525,10 +586,19 @@
         const btnText = document.getElementById('btnRecordText');
         if (mediaRecorder && mediaRecorder.state === 'recording') {
           mediaRecorder.stop();
+          cancelAnimationFrame(recordAnimFrame);
           btnText.innerText = 'Запись';
           btnRecord.style.color = '#fff';
         } else {
-          const stream = iframeCanvas.captureStream(30);
+          const comp = createCompositeCanvas(iframeCanvas);
+          
+          function renderLoop() {
+            comp.drawFrame();
+            recordAnimFrame = requestAnimationFrame(renderLoop);
+          }
+          renderLoop();
+          
+          const stream = comp.cvs.captureStream(30);
           const options = { mimeType: 'video/webm; codecs=vp9' };
           try {
             mediaRecorder = new MediaRecorder(stream, options);
