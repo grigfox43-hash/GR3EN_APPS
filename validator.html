@@ -52,33 +52,50 @@
           <p>Валидатор интерактивной рекламы. Проверьте ваш архив или HTML файл на соответствие техническим требованиям рекламных сетей.</p>
         </div>
 
-        <div class="tool-layout">
+        <style>
+          .validator-layout {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 2rem;
+          }
+          .validator-layout .tool-sidebar, .validator-layout .tool-main {
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          /* Override height of logBox since it will be full width now */
+          #logBox {
+             height: 250px !important;
+          }
+        </style>
+        <div class="tool-layout validator-layout">
           <!-- Settings Sidebar -->
           <aside class="tool-sidebar">
             <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">НАСТРОЙКИ ВАЛИДАЦИИ</h3>
             
-            <div class="form-group">
-              <label class="form-label" for="networkSelect">Рекламная сеть</label>
-              <select id="networkSelect" class="form-select">
-                <option value="applovin">AppLovin</option>
-                <option value="ironsource">ironSource</option>
-                <option value="mintegral">Mintegral</option>
-                <option value="unity">Unity Ads</option>
-                <option value="vungle">Vungle (Liftoff)</option>
-                <option value="tiktok">TikTok (Pangle)</option>
-                <option value="meta">Meta (Facebook)</option>
-                <option value="google">Google Ads (UAC)</option>
-                <option value="snapchat">Snapchat</option>
-                <option value="chartboost">Chartboost</option>
-                <option value="generic">Общая проверка (Generic)</option>
-              </select>
-            </div>
-            
-            <div class="form-group" style="margin-top: 1.5rem;">
-              <h4 class="form-label">Требования сети:</h4>
-              <ul id="networkReqs" style="color: var(--color-text-muted); font-size: 0.85rem; padding-left: 1.2rem;">
-                <!-- Updated dynamically -->
-              </ul>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+              <div class="form-group">
+                <label class="form-label" for="networkSelect">Рекламная сеть</label>
+                <select id="networkSelect" class="form-select">
+                  <option value="applovin">AppLovin</option>
+                  <option value="ironsource">ironSource</option>
+                  <option value="mintegral">Mintegral</option>
+                  <option value="unity">Unity Ads</option>
+                  <option value="vungle">Vungle (Liftoff)</option>
+                  <option value="tiktok">TikTok (Pangle)</option>
+                  <option value="meta">Meta (Facebook)</option>
+                  <option value="google">Google Ads (UAC)</option>
+                  <option value="snapchat">Snapchat</option>
+                  <option value="chartboost">Chartboost</option>
+                  <option value="generic">Общая проверка (Generic)</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <h4 class="form-label">Требования сети:</h4>
+                <ul id="networkReqs" style="color: var(--color-text-muted); font-size: 0.85rem; padding-left: 1.2rem; margin-top: 0.5rem;">
+                  <!-- Updated dynamically -->
+                </ul>
+              </div>
             </div>
             
             <div style="margin-top: 1.5rem;">
@@ -282,6 +299,7 @@
       btnMute.innerHTML = isMuted ? 
         `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff3333" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>` : 
         `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+      previewIframe.contentWindow.postMessage({type: 'setMute', muted: isMuted}, '*');
     });
 
     btnReload.addEventListener('click', () => {
@@ -364,6 +382,29 @@
           document.addEventListener('DOMContentLoaded', () => {
             document.body.appendChild(fpsDiv);
             loop();
+          });
+          
+          // 4. Mute Handler
+          window.__audioContexts = [];
+          const OrigAudioContext = window.AudioContext || window.webkitAudioContext;
+          if (OrigAudioContext) {
+             window.AudioContext = function() {
+                const ctx = new OrigAudioContext();
+                window.__audioContexts.push(ctx);
+                return ctx;
+             };
+             window.webkitAudioContext = window.AudioContext;
+          }
+          
+          window.addEventListener('message', (e) => {
+             if (e.data && e.data.type === 'setMute') {
+                const m = e.data.muted;
+                document.querySelectorAll('audio, video').forEach(el => el.muted = m);
+                window.__audioContexts.forEach(ctx => {
+                   if (m) ctx.suspend();
+                   else ctx.resume();
+                });
+             }
           });
         })();
       <\/script>`;
