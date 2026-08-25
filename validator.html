@@ -98,26 +98,33 @@
               </div>
             </div>
             
-            <div style="margin-top: 1.5rem;">
-              <h4 class="form-label">Лог проверки:</h4>
-              <div id="logBox" class="log-box notranslate" translate="no" style="height: 300px; font-size: 0.75rem;">
-                <div class="log-entry log-info"><span class="log-icon">></span><span class="log-text">Готов к проверке. Выберите файл.</span></div>
+            <div style="margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+              
+              <div>
+                <h4 class="form-label">Лог проверки:</h4>
+                <div id="logBox" class="log-box notranslate" translate="no" style="height: 300px; font-size: 0.75rem;">
+                  <div class="log-entry log-info"><span class="log-icon">></span><span class="log-text">Готов к проверке. Выберите файл.</span></div>
+                </div>
               </div>
+              
+              <div>
+                <h4 class="form-label">Загрузка:</h4>
+                <div id="dropzone" class="dropzone" style="height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; margin-top: 0;">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <p style="font-size: 1rem; margin-top: 1rem; text-align: center;">Перетащите ZIP архив или HTML файл сюда<br><span style="font-size:0.8rem; color: var(--color-text-muted);">или нажмите для выбора файла</span></p>
+                  <input type="file" id="fileInput" accept=".zip,.html" style="display:none;">
+                </div>
+              </div>
+              
             </div>
           </aside>
 
           <!-- Main Workspace -->
           <div class="tool-main">
-            
-            <div id="dropzone" class="dropzone" style="min-height: 120px; padding: 1.5rem;">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              <p style="font-size: 1rem; margin-top: 0.5rem;">Перетащите ZIP архив или HTML файл сюда<br><span style="font-size:0.8rem;">или нажмите для выбора файла</span></p>
-              <input type="file" id="fileInput" accept=".zip,.html" style="display:none;">
-            </div>
             <div id="previewContainer" style="display: none; flex-direction: column; align-items: center; margin-top: 3rem; background: linear-gradient(180deg, rgba(30, 214, 91, 0.02) 0%, rgba(10, 12, 16, 0.8) 100%); border: 1px solid rgba(30, 214, 91, 0.1); padding: 3rem 2rem; border-radius: 24px; position: relative; overflow: hidden;">
               <h3 style="color: var(--color-primary); margin-bottom: 2rem; font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 2px; text-shadow: 0 0 15px rgba(30,214,91,0.4);">LIVE PREVIEW</h3>
               

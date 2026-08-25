@@ -34,6 +34,7 @@ translations = {
     "НА ГЛАВНУЮ": "HOME",
     "Запись (WebM)": "Record (WebM)",
     "Остановить": "Stop",
+    "Загрузка:": "Upload:",
     "Ультра-сжатие (Minify HTML/JS/CSS)": "Ultra-Minify (HTML/JS/CSS)",
     "Удаляет все пробелы, переносы и минифицирует код для максимальной экономии веса.": "Removes all spaces, line breaks and minifies code for maximum size savings.",
     "Применяю ультра-сжатие (Minify)...": "Applying ultra-minify...",
