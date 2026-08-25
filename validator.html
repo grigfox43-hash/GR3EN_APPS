@@ -540,7 +540,7 @@
         } else {
           log('ПРЕДУПРЕЖДЕНИЕ: Google Ads требует метатег ad.size (например, <meta name="ad.size" content="width=320,height=480">).', 'warn', `Для Google Ads (UAC) обязательно наличие метатега с размерами креатива.\n\nДобавьте в <head>:\n<meta name="ad.size" content="width=320,height=480">`);
         }
-      } // <-- MISSING BRACE FIXED
+      }
 
       // Check Mintegral specific requirements
       if (net.name === 'Mintegral') {
@@ -549,6 +549,24 @@
         }
         if (!html.includes('window.gameEnd')) {
           log('ПРЕДУПРЕЖДЕНИЕ: Mintegral рекомендует использовать window.gameEnd()', 'warn', `Сеть Mintegral использует коллбек для понимания, когда игра завершена (победа или проигрыш).\n\nВызовите:\nwindow.gameEnd && window.gameEnd();\nв конце геймплея.`);
+        }
+      }
+
+      // Check ironSource specific requirements
+      if (net.name === 'ironSource') {
+        if (html.includes('dapi.') || html.includes('dapi.js')) {
+          log('Код DAPI найден (рекомендуется для ironSource).', 'success');
+        } else {
+          log('ПРЕДУПРЕЖДЕНИЕ: ironSource предпочитает стандарт DAPI.', 'warn', `Вы выбрали ironSource. Эта сеть поддерживает MRAID, но настоятельно рекомендует использовать их собственный стандарт DAPI.\n\nВ вашем коде не найдены вызовы объекта dapi (например, dapi.isReady). Обязательно проверьте, что ваша интеграция соответствует их документации.`);
+        }
+      }
+
+      // Check Vungle specific requirements
+      if (net.name === 'Vungle (Liftoff)') {
+        if (html.includes('parent.postMessage') && html.includes('complete')) {
+          log('Событие завершения игры (complete) найдено.', 'success');
+        } else {
+          log('ПРЕДУПРЕЖДЕНИЕ: Vungle рекомендует отправлять событие complete.', 'warn', `Сеть Vungle отслеживает не только клик, но и момент завершения туториала/геймплея.\n\nРекомендуется вызвать:\nparent.postMessage("complete", "*");\nВ момент, когда игрок закончил играть.`);
         }
       }
     }
