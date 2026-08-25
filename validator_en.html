@@ -33,11 +33,11 @@
         <ul class="nav-menu">
           <li>
             <div class="lang-switcher">
-              <button class="lang-btn active" data-lang="ru" onclick="window.location.href='validator.html'">RU</button>
-              <button class="lang-btn" data-lang="en" onclick="window.location.href='validator_en.html'">EN</button>
+              <button class="lang-btn" data-lang="ru" onclick="window.location.href='validator.html'">RU</button>
+              <button class="lang-btn active" data-lang="en" onclick="window.location.href='validator_en.html'">EN</button>
             </div>
           </li>
-          <li><a href="index.html" class="nav-item-link">НА ГЛАВНУЮ</a></li>
+          <li><a href="index.html" class="nav-item-link">HOME</a></li>
         </ul>
       </div>
     </div>
@@ -49,7 +49,7 @@
         
         <div class="tool-header">
           <h1>PLAYABLE INSPECTOR</h1>
-          <p>Валидатор интерактивной рекламы. Проверьте ваш архив или HTML файл на соответствие техническим требованиям рекламных сетей.</p>
+          <p>Interactive Ads Validator. Check your archive or HTML file for compliance with network technical requirements.</p>
         </div>
 
         <div class="tool-layout">
@@ -58,7 +58,7 @@
             <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">НАСТРОЙКИ ВАЛИДАЦИИ</h3>
             
             <div class="form-group">
-              <label class="form-label" for="networkSelect">Рекламная сеть</label>
+              <label class="form-label" for="networkSelect">Ad Network</label>
               <select id="networkSelect" class="form-select">
                 <option value="applovin">AppLovin</option>
                 <option value="ironsource">ironSource</option>
@@ -75,16 +75,16 @@
             </div>
             
             <div class="form-group" style="margin-top: 1.5rem;">
-              <h4 class="form-label">Требования сети:</h4>
+              <h4 class="form-label">Network Requirements:</h4>
               <ul id="networkReqs" style="color: var(--color-text-muted); font-size: 0.85rem; padding-left: 1.2rem;">
                 <!-- Updated dynamically -->
               </ul>
             </div>
             
             <div style="margin-top: 1.5rem;">
-              <h4 class="form-label">Лог проверки:</h4>
+              <h4 class="form-label">Validation Log:</h4>
               <div id="logBox" class="log-box notranslate" translate="no" style="height: 300px; font-size: 0.75rem;">
-                <div class="log-entry log-info"><span class="log-icon">></span><span class="log-text">Готов к проверке. Выберите файл.</span></div>
+                <div class="log-entry log-info"><span class="log-icon">></span><span class="log-text">Ready for check. Select a file.</span></div>
               </div>
             </div>
           </aside>
@@ -205,7 +205,7 @@
             titleColor = '#ffcc00';
           }
           
-          document.getElementById('errorModalTitle').textContent = type === 'error' ? 'ДЕТАЛИ ОШИБКИ' : 'ДЕТАЛИ ПРЕДУПРЕЖДЕНИЯ';
+          document.getElementById('errorModalTitle').textContent = type === 'error' ? 'DETAILS ОШИБКИ' : 'DETAILS ПРЕДУПРЕЖДЕНИЯ';
           document.getElementById('errorModalTitle').style.color = titleColor;
           document.getElementById('errorModalText').textContent = severity + details;
           document.getElementById('errorModal').style.display = 'flex';
@@ -399,7 +399,7 @@
         if (html.includes('mraid.js')) {
           log('mraid.js найден (ожидается для данной сети).', 'success');
         } else {
-          log(`ОШИБКА: ${net.name} требует mraid.js, но он не найден в HTML.`, 'error', `Рекламная сеть ${net.name} требует наличие скрипта MRAID для отслеживания показов и кликов.\n\nВам необходимо добавить тег:\n<script src="mraid.js"><` + `/script>\n\nВнутрь тега <head> вашего index.html файла.`);
+          log(`ОШИБКА: ${net.name} требует mraid.js, но он не найден в HTML.`, 'error', `Ad Network ${net.name} требует наличие скрипта MRAID для отслеживания показов и кликов.\n\nВам необходимо добавить тег:\n<script src="mraid.js"><` + `/script>\n\nВнутрь тега <head> вашего index.html файла.`);
         }
       }
 
@@ -480,7 +480,7 @@
   <div class="cyber-modal-overlay" id="errorModal" role="dialog" aria-modal="true" style="display:none;" onclick="if(event.target === this) this.style.display='none'">
     <div class="cyber-modal-container">
       <div class="cyber-modal-header">
-        <h2 class="cyber-modal-title" id="errorModalTitle" style="color: #ff3333;">ДЕТАЛИ</h2>
+        <h2 class="cyber-modal-title" id="errorModalTitle" style="color: #ff3333;">DETAILS</h2>
         <button class="cyber-modal-close" onclick="document.getElementById('errorModal').style.display='none'">&times;</button>
       </div>
       <div class="cyber-modal-body">
