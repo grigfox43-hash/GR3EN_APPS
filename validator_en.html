@@ -318,6 +318,7 @@
       
       const interceptor = `<script>
         (function() {
+          // 1. Console Interceptor
           const originalError = console.error;
           const originalWarn = console.warn;
           console.error = function(...args) {
@@ -331,6 +332,39 @@
           window.onerror = function(msg, url, line) {
             window.parent.postMessage({type: 'console', level: 'error', args: [msg + ' (line ' + line + ')']}, '*');
           };
+          
+          // 2. MRAID Mock
+          window.mraid = window.mraid || {
+            getState: function() { return 'default'; },
+            isViewable: function() { return true; },
+            addEventListener: function(event, listener) {
+              if (event === 'ready' || event === 'viewableChange') setTimeout(listener, 100);
+            },
+            removeEventListener: function() {},
+            open: function(url) { console.log('MRAID: opened ' + url); },
+            close: function() { console.log('MRAID: closed'); },
+            expand: function() { console.log('MRAID: expanded'); },
+            useCustomClose: function() {}
+          };
+          
+          // 3. FPS Counter
+          let frames = 0, prevTime = performance.now();
+          const fpsDiv = document.createElement('div');
+          fpsDiv.style.cssText = 'position:fixed;top:5px;left:5px;background:rgba(0,0,0,0.7);color:#0f0;padding:2px 5px;font-family:monospace;font-size:12px;z-index:999999;pointer-events:none;border:1px solid #0f0;border-radius:3px;';
+          function loop() {
+            frames++;
+            const time = performance.now();
+            if (time >= prevTime + 1000) {
+              fpsDiv.innerText = Math.round((frames * 1000) / (time - prevTime)) + ' FPS';
+              frames = 0;
+              prevTime = time;
+            }
+            requestAnimationFrame(loop);
+          }
+          document.addEventListener('DOMContentLoaded', () => {
+            document.body.appendChild(fpsDiv);
+            loop();
+          });
         })();
       <\/script>`;
       

@@ -95,9 +95,14 @@
             
             <div id="controlsContainer"></div>
             
-            <button id="btnExport" class="btn-cyber btn-cyber-outline" style="width: 100%; margin-top: 1.5rem; font-size: 1.2rem; padding: 0.5rem;">
-              Экспорт кода
-            </button>
+            <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+              <button id="btnExport" class="btn-cyber btn-cyber-outline" style="flex: 1; font-size: 1rem; padding: 0.5rem;">
+                Экспорт кода
+              </button>
+              <button id="btnRecord" class="btn-cyber btn-cyber-primary" style="flex: 1; font-size: 1rem; padding: 0.5rem;">
+                Запись (WebM)
+              </button>
+            </div>
           </aside>
 
           <!-- Main Workspace -->
@@ -391,6 +396,43 @@
     
     buildUI('explosion');
     render();
+
+    let mediaRecorder;
+    let recordedChunks = [];
+    document.getElementById('btnRecord').addEventListener('click', (e) => {
+        const btn = e.target;
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            btn.textContent = 'Запись (WebM)';
+            btn.classList.remove('active');
+        } else {
+            const stream = canvas.captureStream(30);
+            const options = { mimeType: 'video/webm; codecs=vp9' };
+            try {
+                mediaRecorder = new MediaRecorder(stream, options);
+            } catch (err) {
+                mediaRecorder = new MediaRecorder(stream); // fallback
+            }
+            recordedChunks = [];
+            mediaRecorder.ondataavailable = (ev) => { if (ev.data.size > 0) recordedChunks.push(ev.data); };
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'particles_effect.webm';
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+            mediaRecorder.start();
+            btn.textContent = 'Остановить';
+            btn.classList.add('active');
+            
+            // Auto emit some particles for recording
+            isDrawing = true;
+            setTimeout(() => { isDrawing = false; }, 2000);
+        }
+    });
 
     btnExport.addEventListener('click', () => {
         const area = document.getElementById('codeExportArea');

@@ -1,4 +1,4 @@
-﻿import os, glob, re
+import os, glob, re
 from html.parser import HTMLParser
 
 class TextParser(HTMLParser):
@@ -32,6 +32,12 @@ translations = {
     "Для разработчиков Playable Ads & WebGL": "For Playable Ads & WebGL Developers",
     "Открыть": "Open",
     "НА ГЛАВНУЮ": "HOME",
+    "Запись (WebM)": "Record (WebM)",
+    "Остановить": "Stop",
+    "Ультра-сжатие (Minify HTML/JS/CSS)": "Ultra-Minify (HTML/JS/CSS)",
+    "Удаляет все пробелы, переносы и минифицирует код для максимальной экономии веса.": "Removes all spaces, line breaks and minifies code for maximum size savings.",
+    "Применяю ультра-сжатие (Minify)...": "Applying ultra-minify...",
+    "Сжатие завершено! Сэкономлено: ": "Minification complete! Saved: ",
     "Пресет": "Preset",
     "Взрыв (Explosion)": "Explosion",
     "Огонь (Fire)": "Fire",
