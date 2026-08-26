@@ -417,6 +417,10 @@ for f_name in html_files:
     content = re.sub(r' onclick=\"window\.location\.href=\'[^\']+\'\"', '', content)
     en_content = re.sub(r' onclick=\"window\.location\.href=\'[^\']+\'\"', '', en_content)
     
+    for h_file in html_files:
+        en_h_file = h_file.replace('.html', '_en.html')
+        en_content = re.sub(rf'<a\s+([^>]*?)href=[\'"]{re.escape(h_file)}[\'"]', rf'<a \1href="{en_h_file}"', en_content)
+
     content = content.replace('<button class=\"lang-btn active\" data-lang=\"ru\">RU</button>', f'<button class=\"lang-btn active\" data-lang=\"ru\" onclick=\"window.location.href=\'{f_name}\'\">RU</button>')
     content = content.replace('<button class=\"lang-btn\" data-lang=\"en\">EN</button>', f'<button class=\"lang-btn\" data-lang=\"en\" onclick=\"window.location.href=\'{en_file}\'\">EN</button>')
     content = content.replace('<script src=\"js/translate.js\"></script>', '')
@@ -424,11 +428,6 @@ for f_name in html_files:
     en_content = en_content.replace('<button class=\"lang-btn active\" data-lang=\"ru\">RU</button>', f'<button class=\"lang-btn\" data-lang=\"ru\" onclick=\"window.location.href=\'{f_name}\'\">RU</button>')
     en_content = en_content.replace('<button class=\"lang-btn\" data-lang=\"en\">EN</button>', f'<button class=\"lang-btn active\" data-lang=\"en\" onclick=\"window.location.href=\'{en_file}\'\">EN</button>')
     en_content = en_content.replace('<script src=\"js/translate.js\"></script>', '')
-
-    for h_file in html_files:
-        en_h_file = h_file.replace('.html', '_en.html')
-        en_content = en_content.replace(f'href="{h_file}"', f'href="{en_h_file}"')
-        en_content = en_content.replace(f'href=\'{h_file}\'', f'href=\'{en_h_file}\'')
     
     with open(f_name, 'w', encoding='utf-8') as f:
         f.write(content)
