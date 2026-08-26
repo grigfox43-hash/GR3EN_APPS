@@ -49,9 +49,10 @@
         </div>
 
         <!-- Mode Switcher -->
-        <div style="display: flex; gap: 0.8rem; margin-bottom: 2rem; background: rgba(0,0,0,0.4); padding: 6px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: fit-content;">
+        <div style="display: flex; gap: 0.8rem; margin-bottom: 2rem; background: rgba(0,0,0,0.4); padding: 6px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: fit-content; flex-wrap: wrap;">
           <button id="tabTrimmer" class="btn-cyber active" style="padding: 8px 20px; font-weight: 700; font-size: 0.95rem; background: var(--color-primary); color: #000; border: none; border-radius: 8px; cursor: pointer;">Обрезка & Оптимизация (Trimmer)</button>
           <button id="tabSprite" class="btn-cyber" style="padding: 8px 20px; font-weight: 700; font-size: 0.95rem; background: transparent; color: #fff; border: none; border-radius: 8px; cursor: pointer;">Audio Sprite (Склейка)</button>
+          <button id="tabSynth" class="btn-cyber" style="padding: 8px 20px; font-weight: 700; font-size: 0.95rem; background: transparent; color: #fff; border: none; border-radius: 8px; cursor: pointer;">0 KB Sound Synth (Синтезатор)</button>
         </div>
 
         <!-- MODE 1: TRIMMER & OPTIMIZER -->
@@ -156,6 +157,71 @@
             <div id="logBox" class="log-box notranslate" translate="no" style="height: 200px; display: none;">
             </div>
           </div>
+        <!-- MODE 3: 0 KB SOUND SYNTHESIZER -->
+        <div id="synthLayout" class="tool-layout" style="display: none;">
+          <!-- Settings Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">ПРЕСЕТЫ ЗВУКОВ</h3>
+
+            <div class="form-group">
+              <label class="form-label">Игровой эффект</label>
+              <select id="synthPresetSelect" class="form-select">
+                <option value="coin" selected>🪙 Сбор монеты (Coin / Gem)</option>
+                <option value="jump">🦘 Прыжок (Jump)</option>
+                <option value="laser">🔫 Лазер / Выстрел (Laser)</option>
+                <option value="explosion">💥 Взрыв / Удар (Explosion)</option>
+                <option value="powerup">⭐ Бонус / Апгрейд (Powerup)</option>
+                <option value="win">🎉 Победа (Victory Fanfare)</option>
+                <option value="hit">💢 Получение урона (Hit / Hurt)</option>
+                <option value="click">🔘 Клик по кнопке (UI Tap)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Тип волны</label>
+              <select id="synthWaveType" class="form-select">
+                <option value="sine" selected>Sine (Чистый тон)</option>
+                <option value="triangle">Triangle (Мягкий)</option>
+                <option value="square">Square (8-bit / Ретро)</option>
+                <option value="sawtooth">Sawtooth (Резкий)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Базовая частота: <span id="synthFreqVal">587</span> Hz</label>
+              <input type="range" id="synthFreq" min="100" max="2000" value="587">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Длительность: <span id="synthDurVal">0.2</span> сек</label>
+              <input type="range" id="synthDur" min="0.05" max="1.5" step="0.05" value="0.2">
+            </div>
+
+            <button id="btnPlaySynth" class="btn-cyber btn-cyber-primary" style="width: 100%; margin-top: 1rem; font-size: 1.1rem; padding: 0.6rem;">
+              ▶ Воспроизвести
+            </button>
+            <button id="btnCopySynthCode" class="btn-cyber btn-cyber-outline" style="width: 100%; margin-top: 0.5rem; font-size: 0.95rem; padding: 0.5rem;">
+              Скопировать 0 KB JS функцию
+            </button>
+          </aside>
+
+          <!-- Main Workspace -->
+          <div class="tool-main" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid var(--color-primary); border-radius: 12px; padding: 1.2rem;">
+              <h4 style="color: var(--color-primary); margin: 0 0 0.8rem 0; font-family: var(--font-display);">ВИЗУАЛИЗАЦИЯ СИНТЕЗА ЗВУКА:</h4>
+              <div style="width: 100%; height: 160px; background: #05070a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                <canvas id="synthVisualCanvas" width="500" height="150" style="width: 100%; height: 100%;"></canvas>
+              </div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                <h4 style="color: #fff; margin: 0; font-family: var(--font-display);">ГОТОВАЯ ФУНКЦИЯ ДЛЯ PLAYABLE AD (0 КБ ВЕСА):</h4>
+                <button id="btnCopySynthSnippetOnly" class="btn-cyber" style="padding: 4px 12px; font-size: 0.8rem;">Скопировать</button>
+              </div>
+              <textarea id="synthCodeOutput" class="notranslate" translate="no" style="width: 100%; height: 200px; background: #080a0f; color: #a6e22e; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-family: monospace; font-size: 0.8rem; padding: 0.8rem; resize: vertical;" readonly></textarea>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -166,26 +232,36 @@
     // Mode Switching
     const tabTrimmer = document.getElementById('tabTrimmer');
     const tabSprite = document.getElementById('tabSprite');
+    const tabSynth = document.getElementById('tabSynth');
     const trimmerLayout = document.getElementById('trimmerLayout');
     const spriteLayout = document.getElementById('spriteLayout');
+    const synthLayout = document.getElementById('synthLayout');
+
+    function setActiveTab(activeTab, activeLayout) {
+      [tabTrimmer, tabSprite, tabSynth].forEach(t => {
+        t.style.background = 'transparent';
+        t.style.color = '#fff';
+      });
+      [trimmerLayout, spriteLayout, synthLayout].forEach(l => l.style.display = 'none');
+
+      activeTab.style.background = 'var(--color-primary)';
+      activeTab.style.color = '#000';
+      activeLayout.style.display = 'grid';
+    }
 
     tabTrimmer.addEventListener('click', () => {
-      tabTrimmer.style.background = 'var(--color-primary)';
-      tabTrimmer.style.color = '#000';
-      tabSprite.style.background = 'transparent';
-      tabSprite.style.color = '#fff';
-      trimmerLayout.style.display = 'grid';
-      spriteLayout.style.display = 'none';
+      setActiveTab(tabTrimmer, trimmerLayout);
       if (trimAudioBuffer) drawWaveform();
     });
 
     tabSprite.addEventListener('click', () => {
-      tabSprite.style.background = 'var(--color-primary)';
-      tabSprite.style.color = '#000';
-      tabTrimmer.style.background = 'transparent';
-      tabTrimmer.style.color = '#fff';
-      spriteLayout.style.display = 'grid';
-      trimmerLayout.style.display = 'none';
+      setActiveTab(tabSprite, spriteLayout);
+    });
+
+    tabSynth.addEventListener('click', () => {
+      setActiveTab(tabSynth, synthLayout);
+      updateSynthCode();
+      drawSynthVisual();
     });
 
     // Audio Context
@@ -604,6 +680,194 @@
       }
       return new Blob([buffer], {type: "audio/wav"});
     }
+
+    // ==========================================
+    // 0 KB SOUND SYNTHESIZER LOGIC
+    // ==========================================
+    const synthPresetSelect = document.getElementById('synthPresetSelect');
+    const synthWaveType = document.getElementById('synthWaveType');
+    const synthFreq = document.getElementById('synthFreq');
+    const synthFreqVal = document.getElementById('synthFreqVal');
+    const synthDur = document.getElementById('synthDur');
+    const synthDurVal = document.getElementById('synthDurVal');
+    const btnPlaySynth = document.getElementById('btnPlaySynth');
+    const btnCopySynthCode = document.getElementById('btnCopySynthCode');
+    const btnCopySynthSnippetOnly = document.getElementById('btnCopySynthSnippetOnly');
+    const synthCodeOutput = document.getElementById('synthCodeOutput');
+    const synthVisualCanvas = document.getElementById('synthVisualCanvas');
+    const synthCtx = synthVisualCanvas.getContext('2d');
+
+    const synthPresets = {
+      coin: { wave: 'sine', freq: 987, dur: 0.25, name: 'playCoinSound' },
+      jump: { wave: 'square', freq: 300, dur: 0.2, name: 'playJumpSound' },
+      laser: { wave: 'sawtooth', freq: 880, dur: 0.15, name: 'playLaserSound' },
+      explosion: { wave: 'sawtooth', freq: 140, dur: 0.6, name: 'playExplosionSound' },
+      powerup: { wave: 'triangle', freq: 440, dur: 0.4, name: 'playPowerupSound' },
+      win: { wave: 'triangle', freq: 523, dur: 0.5, name: 'playWinSound' },
+      hit: { wave: 'sawtooth', freq: 220, dur: 0.18, name: 'playHitSound' },
+      click: { wave: 'triangle', freq: 650, dur: 0.08, name: 'playClickSound' }
+    };
+
+    synthPresetSelect.addEventListener('change', () => {
+      const p = synthPresets[synthPresetSelect.value];
+      if (p) {
+        synthWaveType.value = p.wave;
+        synthFreq.value = p.freq;
+        synthDur.value = p.dur;
+        synthFreqVal.textContent = p.freq;
+        synthDurVal.textContent = p.dur;
+      }
+      updateSynthCode();
+      drawSynthVisual();
+    });
+
+    synthFreq.addEventListener('input', () => { synthFreqVal.textContent = synthFreq.value; updateSynthCode(); drawSynthVisual(); });
+    synthDur.addEventListener('input', () => { synthDurVal.textContent = synthDur.value; updateSynthCode(); drawSynthVisual(); });
+    synthWaveType.addEventListener('change', () => { updateSynthCode(); drawSynthVisual(); });
+
+    function playSynthesizedSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const now = ctx.currentTime;
+        const type = synthWaveType.value;
+        const f = parseFloat(synthFreq.value);
+        const dur = parseFloat(synthDur.value);
+        const preset = synthPresetSelect.value;
+
+        osc.type = type;
+
+        if (preset === 'coin') {
+          osc.frequency.setValueAtTime(f, now);
+          osc.frequency.setValueAtTime(f * 1.5, now + dur * 0.4);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        } else if (preset === 'jump') {
+          osc.frequency.setValueAtTime(f, now);
+          osc.frequency.exponentialRampToValueAtTime(f * 2.5, now + dur);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        } else if (preset === 'laser') {
+          osc.frequency.setValueAtTime(f * 2, now);
+          osc.frequency.exponentialRampToValueAtTime(f * 0.2, now + dur);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        } else if (preset === 'explosion') {
+          osc.frequency.setValueAtTime(f * 1.5, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + dur);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        } else if (preset === 'win') {
+          osc.frequency.setValueAtTime(f, now);
+          osc.frequency.setValueAtTime(f * 1.25, now + dur * 0.25);
+          osc.frequency.setValueAtTime(f * 1.5, now + dur * 0.5);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        } else {
+          osc.frequency.setValueAtTime(f, now);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        }
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + dur);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    btnPlaySynth.addEventListener('click', playSynthesizedSound);
+
+    function updateSynthCode() {
+      const p = synthPresets[synthPresetSelect.value] || { name: 'playSoundFX' };
+      const type = synthWaveType.value;
+      const f = synthFreq.value;
+      const dur = synthDur.value;
+      const preset = synthPresetSelect.value;
+
+      let freqLogic = `osc.frequency.setValueAtTime(${f}, now);`;
+      if (preset === 'coin') {
+        freqLogic = `osc.frequency.setValueAtTime(${f}, now);\n    osc.frequency.setValueAtTime(${Math.round(f * 1.5)}, now + ${dur} * 0.4);`;
+      } else if (preset === 'jump') {
+        freqLogic = `osc.frequency.setValueAtTime(${f}, now);\n    osc.frequency.exponentialRampToValueAtTime(${Math.round(f * 2.5)}, now + ${dur});`;
+      } else if (preset === 'laser') {
+        freqLogic = `osc.frequency.setValueAtTime(${Math.round(f * 2)}, now);\n    osc.frequency.exponentialRampToValueAtTime(${Math.round(f * 0.2)}, now + ${dur});`;
+      } else if (preset === 'explosion') {
+        freqLogic = `osc.frequency.setValueAtTime(${Math.round(f * 1.5)}, now);\n    osc.frequency.exponentialRampToValueAtTime(40, now + ${dur});`;
+      } else if (preset === 'win') {
+        freqLogic = `osc.frequency.setValueAtTime(${f}, now);\n    osc.frequency.setValueAtTime(${Math.round(f * 1.25)}, now + ${dur} * 0.25);\n    osc.frequency.setValueAtTime(${Math.round(f * 1.5)}, now + ${dur} * 0.5);`;
+      }
+
+      const code = `// 0 KB Web Audio Sound Effect - Zero external files!
+function ${p.name}() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const now = ctx.currentTime;
+    osc.type = '${type}';
+    ${freqLogic}
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + ${dur});
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + ${dur});
+  } catch(e) {}
+}`;
+      synthCodeOutput.value = code;
+    }
+
+    function drawSynthVisual() {
+      const w = synthVisualCanvas.width;
+      const h = synthVisualCanvas.height;
+      synthCtx.clearRect(0, 0, w, h);
+
+      synthCtx.strokeStyle = 'rgba(30, 214, 91, 0.2)';
+      synthCtx.lineWidth = 1;
+      synthCtx.beginPath();
+      synthCtx.moveTo(0, h/2);
+      synthCtx.lineTo(w, h/2);
+      synthCtx.stroke();
+
+      synthCtx.strokeStyle = '#1ed65f';
+      synthCtx.lineWidth = 2;
+      synthCtx.beginPath();
+
+      const type = synthWaveType.value;
+      const freq = parseFloat(synthFreq.value) / 100;
+      const cycles = Math.min(Math.max(freq, 2), 20);
+
+      for (let x = 0; x < w; x++) {
+        const t = (x / w) * cycles * Math.PI * 2;
+        let y = 0;
+        if (type === 'sine') y = Math.sin(t);
+        else if (type === 'triangle') y = Math.asin(Math.sin(t)) * (2 / Math.PI);
+        else if (type === 'square') y = Math.sin(t) >= 0 ? 0.8 : -0.8;
+        else if (type === 'sawtooth') y = ((t % (Math.PI * 2)) / Math.PI) - 1;
+
+        // Envelope decay
+        const env = 1 - (x / w) * 0.7;
+        const cy = h/2 + y * (h/2.5) * env;
+        if (x === 0) synthCtx.moveTo(x, cy);
+        else synthCtx.lineTo(x, cy);
+      }
+      synthCtx.stroke();
+    }
+
+    function copyText(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const old = btn.textContent;
+        btn.textContent = '✓ Скопировано!';
+        setTimeout(() => btn.textContent = old, 2000);
+      });
+    }
+
+    btnCopySynthCode.addEventListener('click', () => copyText(synthCodeOutput.value, btnCopySynthCode));
+    btnCopySynthSnippetOnly.addEventListener('click', () => copyText(synthCodeOutput.value, btnCopySynthSnippetOnly));
   </script>
 
 </body>

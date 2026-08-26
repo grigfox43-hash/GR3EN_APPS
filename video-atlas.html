@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Video & GIF to Spritesheet | xGR3ENx Tools</title>
+  
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="font/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/modern.css">
+  <link rel="stylesheet" href="css/tools.css">
+  <style>
+    .color-row { display: flex; gap: 0.5rem; align-items: center; }
+    .color-row input[type="color"] { width: 44px; height: 38px; border: none; padding: 0; cursor: pointer; background: transparent; }
+    .range-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header scrolled">
+    <div class="site-container">
+      <div class="nav-wrapper">
+        <a href="index.html" class="brand-logo-link" title="xGR3ENx Tools">
+          <img class="brand-logo-img" src="img/logo.svg" alt="xGR3ENx Logo" width="44" height="44">
+          <div class="brand-logo-text">
+            xGR3ENx
+            <span>TOOLS</span>
+          </div>
+        </a>
+        <ul class="nav-menu">
+          <li>
+            <div class="lang-switcher">
+              <button class="lang-btn active" data-lang="ru" onclick="window.location.href='video-atlas.html'">RU</button>
+              <button class="lang-btn" data-lang="en" onclick="window.location.href='video-atlas_en.html'">EN</button>
+            </div>
+          </li>
+          <li><a href="index.html" class="nav-item-link">НА ГЛАВНУЮ</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding-top: 100px;">
+    <section class="section-wrapper" style="padding-top: 2rem;">
+      <div class="site-container">
+        
+        <div class="tool-header">
+          <h1>VIDEO & GIF TO SPRITE SHEET</h1>
+          <p>Покадровая нарезка видео (MP4, WebM) и GIF в оптимизированный PNG спрайт-лист. Выбор отрезка, регулировка FPS/кадров, удаление фона (хромакей) и генерация CSS/JS анимаций.</p>
+        </div>
+
+        <div class="tool-layout">
+          <!-- Settings Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">НАСТРОЙКИ НАРЕЗКИ</h3>
+            
+            <div id="dropzone" class="dropzone" style="min-height: 120px; padding: 1rem; border-width: 1px;">
+              <p style="font-size: 0.95rem;">Перетащите MP4 / WebM / GIF видео сюда</p>
+              <input type="file" id="videoFileInput" accept="video/mp4,video/webm,video/ogg,image/gif" style="display:none;">
+            </div>
+
+            <!-- Frame Count / Extraction -->
+            <div class="form-group" style="margin-top: 1.5rem;">
+              <label class="form-label" for="frameCountInput">Количество кадров: <span id="frameCountVal" style="color: var(--color-primary); font-weight: 700;">12</span></label>
+              <input type="range" id="frameCountInput" min="4" max="48" step="1" value="12">
+            </div>
+
+            <!-- Scale resolution -->
+            <div class="form-group">
+              <label class="form-label" for="scaleSelect">Масштаб размера кадров</label>
+              <select id="scaleSelect" class="form-select">
+                <option value="1">100% (Оригинальный размер)</option>
+                <option value="0.75">75%</option>
+                <option value="0.5" selected>50% (Рекомендуется для Playable)</option>
+                <option value="0.25">25% (Максимальное сжатие)</option>
+              </select>
+            </div>
+
+            <!-- Columns in Spritesheet -->
+            <div class="form-group">
+              <label class="form-label" for="columnsSelect">Колонок в атласе</label>
+              <select id="columnsSelect" class="form-select">
+                <option value="auto" selected>Автоматически (Квадратная сетка)</option>
+                <option value="4">4 колонки</option>
+                <option value="6">6 колонок</option>
+                <option value="8">8 колонок</option>
+                <option value="strip">1 строка (Горизонтальная лента)</option>
+              </select>
+            </div>
+
+            <!-- Chroma Key (Background Removal) -->
+            <div class="form-check" style="margin-top: 1rem;">
+              <input type="checkbox" id="chromaKeyEnabled">
+              <label for="chromaKeyEnabled">Удалить фон (Хромакей / Ключ)</label>
+            </div>
+
+            <div id="chromaSettings" style="display: none; margin-top: 0.8rem; padding: 0.8rem; background: rgba(0,0,0,0.4); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+              <div class="form-group" style="margin-bottom: 0.8rem;">
+                <label class="form-label">Цвет фона для удаления</label>
+                <div class="color-row">
+                  <input type="color" id="chromaColor" value="#00ff00">
+                  <button type="button" id="btnChromaGreen" class="btn-cyber" style="padding: 2px 8px; font-size: 0.75rem;">Зеленый</button>
+                  <button type="button" id="btnChromaBlack" class="btn-cyber" style="padding: 2px 8px; font-size: 0.75rem;">Черный</button>
+                  <button type="button" id="btnChromaWhite" class="btn-cyber" style="padding: 2px 8px; font-size: 0.75rem;">Белый</button>
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Толерантность: <span id="chromaTolVal">45</span>%</label>
+                <input type="range" id="chromaTolerance" min="5" max="90" value="45">
+              </div>
+            </div>
+
+            <button id="btnGenerateSheet" class="btn-cyber btn-cyber-primary" style="width: 100%; margin-top: 1.5rem; font-size: 1.1rem; padding: 0.6rem;">
+              Сгенерировать Спрайт-лист
+            </button>
+
+            <!-- Export Buttons -->
+            <div id="exportGroup" style="display:none; margin-top: 1.5rem; gap: 0.5rem; flex-direction: column;">
+              <button id="btnDownloadPng" class="btn-cyber btn-cyber-primary" style="width: 100%; font-size: 1rem; padding: 0.5rem;">Скачать .PNG спрайт-лист</button>
+              <button id="btnDownloadJson" class="btn-cyber btn-cyber-outline" style="width: 100%; font-size: 0.9rem; padding: 0.4rem;">Скачать .JSON (Phaser/Pixi)</button>
+              <button id="btnCopyCss" class="btn-cyber btn-cyber-outline" style="width: 100%; font-size: 0.85rem; padding: 0.4rem;">Скопировать CSS Keyframes</button>
+              <button id="btnCopyJs" class="btn-cyber btn-cyber-outline" style="width: 100%; font-size: 0.85rem; padding: 0.4rem;">Скопировать JS Canvas класс</button>
+            </div>
+          </aside>
+
+          <!-- Main Workspace -->
+          <div class="tool-main" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Video Preview & Range Trimmer -->
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(30, 214, 91, 0.3); border-radius: 12px; padding: 1.2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h4 style="color: var(--color-primary); margin: 0; font-family: var(--font-display); letter-spacing: 1px;">ВИДЕО & ТАЙМЛАЙН ОБРЕЗКИ</h4>
+                <div id="videoInfo" style="font-family: monospace; font-size: 0.85rem; color: var(--color-text-muted);">Видео не загружено</div>
+              </div>
+
+              <!-- Video Container -->
+              <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; justify-content: center; min-height: 180px; background: #05070a; border-radius: 8px; padding: 1rem; border: 1px solid rgba(255,255,255,0.05);">
+                <video id="sourceVideo" style="max-height: 200px; max-width: 100%; border-radius: 6px; display: none;" playsinline muted></video>
+                <div id="videoPlaceholder" style="color: var(--color-text-muted); font-size: 0.95rem;">Загрузите видео или GIF файл слева для начала работы</div>
+              </div>
+
+              <!-- Trimmer Timeline Controls -->
+              <div id="trimmerSection" style="display: none; margin-top: 1.2rem;">
+                <div style="display: flex; justify-content: space-between; font-family: monospace; font-size: 0.85rem; color: #fff; margin-bottom: 0.5rem;">
+                  <div>Старт: <span id="trimStartText" style="color: var(--color-primary);">0.00s</span></div>
+                  <div>Конец: <span id="trimEndText" style="color: var(--color-primary);">0.00s</span></div>
+                  <div>Длина отрезка: <span id="trimDurText" style="color: #00ffff;">0.00s</span></div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                  <div class="range-group">
+                    <label class="form-label" style="font-size: 0.75rem;">Точка начала (Start)</label>
+                    <input type="range" id="rangeStart" min="0" max="10" step="0.05" value="0">
+                  </div>
+                  <div class="range-group">
+                    <label class="form-label" style="font-size: 0.75rem;">Точка конца (End)</label>
+                    <input type="range" id="rangeEnd" min="0" max="10" step="0.05" value="10">
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Animation Preview & Spritesheet View -->
+            <div id="resultsCard" style="display: none; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.2rem;">
+              
+              <!-- Animation Live Preview -->
+              <div style="margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                  <h4 style="color: #fff; margin: 0; font-family: var(--font-display);">ЖИВОЙ ПРЕДПРОСМОТР АНИМАЦИИ</h4>
+                  <div id="previewFrameCounter" style="font-family: monospace; font-size: 0.85rem; color: var(--color-primary);">Кадр: 1 / 12</div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 220px 1fr; gap: 1.5rem; align-items: center;">
+                  <!-- Anim Canvas -->
+                  <div style="width: 220px; height: 180px; background: #05070a; background-image: linear-gradient(45deg, #141820 25%, transparent 25%), linear-gradient(-45deg, #141820 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #141820 75%), linear-gradient(-45deg, transparent 75%, #141820 75%); background-size: 16px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <canvas id="animPreviewCanvas" width="180" height="150" style="max-width: 100%; max-height: 100%; object-fit: contain;"></canvas>
+                  </div>
+
+                  <!-- Controls -->
+                  <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                    <div style="display: flex; gap: 0.8rem; align-items: center;">
+                      <button id="btnAnimPlayPause" class="btn-cyber btn-cyber-primary" style="padding: 6px 16px; font-size: 0.9rem;">Пауза</button>
+                      <button id="btnAnimPrev" class="btn-cyber" style="padding: 6px 12px; background: rgba(255,255,255,0.05); color:#fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer;">&larr;</button>
+                      <button id="btnAnimNext" class="btn-cyber" style="padding: 6px 12px; background: rgba(255,255,255,0.05); color:#fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer;">&rarr;</button>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label" style="font-size: 0.8rem;">Скорость анимации: <span id="animFpsVal" style="color: var(--color-primary);">12</span> FPS</label>
+                      <input type="range" id="animFpsInput" min="1" max="30" value="12">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Spritesheet Canvas -->
+              <div>
+                <h4 style="color: #fff; margin-bottom: 1rem; font-family: var(--font-display);">СПРАЙТ-ЛИСТ (ATLAS PNG): <span id="atlasDimText" style="font-size: 0.85rem; color: var(--color-text-muted); font-family: monospace;"></span></h4>
+                <div style="width: 100%; max-height: 380px; overflow: auto; background: #05070a; background-image: linear-gradient(45deg, #141820 25%, transparent 25%), linear-gradient(-45deg, #141820 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #141820 75%), linear-gradient(-45deg, transparent 75%, #141820 75%); background-size: 16px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); padding: 1rem; display: flex; align-items: center; justify-content: center;">
+                  <canvas id="atlasCanvas" style="max-width: 100%; box-shadow: 0 0 20px rgba(0,0,0,0.8);"></canvas>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Code Output Accordion -->
+            <div id="codeCard" style="display: none; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.2rem;">
+              <h4 style="color: var(--color-primary); margin-bottom: 0.8rem; font-family: var(--font-display);">ГОТОВЫЙ КОД ДЛЯ ИСПОЛЬЗОВАНИЯ В КРЕАТИВЕ</h4>
+              <textarea id="codeOutput" class="notranslate" translate="no" style="width: 100%; height: 160px; background: #080a0f; color: #a6e22e; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-family: monospace; font-size: 0.8rem; padding: 0.8rem; resize: vertical;" readonly></textarea>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const videoFileInput = document.getElementById('videoFileInput');
+    const sourceVideo = document.getElementById('sourceVideo');
+    const videoPlaceholder = document.getElementById('videoPlaceholder');
+    const videoInfo = document.getElementById('videoInfo');
+    const trimmerSection = document.getElementById('trimmerSection');
+
+    const rangeStart = document.getElementById('rangeStart');
+    const rangeEnd = document.getElementById('rangeEnd');
+    const trimStartText = document.getElementById('trimStartText');
+    const trimEndText = document.getElementById('trimEndText');
+    const trimDurText = document.getElementById('trimDurText');
+
+    const frameCountInput = document.getElementById('frameCountInput');
+    const frameCountVal = document.getElementById('frameCountVal');
+    const scaleSelect = document.getElementById('scaleSelect');
+    const columnsSelect = document.getElementById('columnsSelect');
+    const chromaKeyEnabled = document.getElementById('chromaKeyEnabled');
+    const chromaSettings = document.getElementById('chromaSettings');
+    const chromaColor = document.getElementById('chromaColor');
+    const chromaTolerance = document.getElementById('chromaTolerance');
+    const chromaTolVal = document.getElementById('chromaTolVal');
+
+    const btnChromaGreen = document.getElementById('btnChromaGreen');
+    const btnChromaBlack = document.getElementById('btnChromaBlack');
+    const btnChromaWhite = document.getElementById('btnChromaWhite');
+
+    const btnGenerateSheet = document.getElementById('btnGenerateSheet');
+    const resultsCard = document.getElementById('resultsCard');
+    const exportGroup = document.getElementById('exportGroup');
+    const codeCard = document.getElementById('codeCard');
+    const codeOutput = document.getElementById('codeOutput');
+
+    const animPreviewCanvas = document.getElementById('animPreviewCanvas');
+    const animCtx = animPreviewCanvas.getContext('2d');
+    const atlasCanvas = document.getElementById('atlasCanvas');
+    const atlasCtx = atlasCanvas.getContext('2d');
+    const atlasDimText = document.getElementById('atlasDimText');
+    const previewFrameCounter = document.getElementById('previewFrameCounter');
+
+    const btnAnimPlayPause = document.getElementById('btnAnimPlayPause');
+    const btnAnimPrev = document.getElementById('btnAnimPrev');
+    const btnAnimNext = document.getElementById('btnAnimNext');
+    const animFpsInput = document.getElementById('animFpsInput');
+    const animFpsVal = document.getElementById('animFpsVal');
+
+    const btnDownloadPng = document.getElementById('btnDownloadPng');
+    const btnDownloadJson = document.getElementById('btnDownloadJson');
+    const btnCopyCss = document.getElementById('btnCopyCss');
+    const btnCopyJs = document.getElementById('btnCopyJs');
+
+    let currentVideoDuration = 0;
+    let extractedFrames = [];
+    let isPlaying = true;
+    let currentAnimIndex = 0;
+    let animInterval = null;
+    let generatedAtlasData = null;
+
+    // Chroma presets
+    btnChromaGreen.addEventListener('click', () => chromaColor.value = '#00ff00');
+    btnChromaBlack.addEventListener('click', () => chromaColor.value = '#000000');
+    btnChromaWhite.addEventListener('click', () => chromaColor.value = '#ffffff');
+
+    chromaKeyEnabled.addEventListener('change', () => {
+      chromaSettings.style.display = chromaKeyEnabled.checked ? 'block' : 'none';
+    });
+
+    chromaTolerance.addEventListener('input', () => chromaTolVal.textContent = chromaTolerance.value);
+    frameCountInput.addEventListener('input', () => frameCountVal.textContent = frameCountInput.value);
+
+    // Dropzone
+    dropzone.addEventListener('click', () => videoFileInput.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    videoFileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    function handleFile(file) {
+      const url = URL.createObjectURL(file);
+      sourceVideo.src = url;
+      sourceVideo.style.display = 'block';
+      videoPlaceholder.style.display = 'none';
+
+      sourceVideo.onloadedmetadata = () => {
+        currentVideoDuration = sourceVideo.duration || 1;
+        videoInfo.textContent = `${sourceVideo.videoWidth} × ${sourceVideo.videoHeight} px (${currentVideoDuration.toFixed(2)}s)`;
+
+        rangeStart.max = currentVideoDuration;
+        rangeEnd.max = currentVideoDuration;
+        rangeStart.value = 0;
+        rangeEnd.value = currentVideoDuration;
+
+        updateTrimDisplay();
+        trimmerSection.style.display = 'block';
+      };
+    }
+
+    function updateTrimDisplay() {
+      const s = parseFloat(rangeStart.value);
+      const e = parseFloat(rangeEnd.value);
+      trimStartText.textContent = s.toFixed(2) + 's';
+      trimEndText.textContent = e.toFixed(2) + 's';
+      trimDurText.textContent = Math.max(0, e - s).toFixed(2) + 's';
+    }
+
+    rangeStart.addEventListener('input', () => {
+      if (parseFloat(rangeStart.value) > parseFloat(rangeEnd.value)) {
+        rangeStart.value = rangeEnd.value;
+      }
+      updateTrimDisplay();
+      sourceVideo.currentTime = parseFloat(rangeStart.value);
+    });
+
+    rangeEnd.addEventListener('input', () => {
+      if (parseFloat(rangeEnd.value) < parseFloat(rangeStart.value)) {
+        rangeEnd.value = rangeStart.value;
+      }
+      updateTrimDisplay();
+      sourceVideo.currentTime = parseFloat(rangeEnd.value);
+    });
+
+    // Frame Extraction Logic
+    async function extractFrames() {
+      if (!sourceVideo.duration) return alert('Сначала загрузите видеофайл!');
+
+      const start = parseFloat(rangeStart.value);
+      const end = parseFloat(rangeEnd.value);
+      const numFrames = parseInt(frameCountInput.value);
+      const scale = parseFloat(scaleSelect.value);
+
+      if (end <= start) return alert('Время конца должно быть больше времени начала!');
+
+      btnGenerateSheet.disabled = true;
+      btnGenerateSheet.textContent = 'Нарезка кадров...';
+
+      const duration = end - start;
+      const step = duration / Math.max(1, (numFrames - 1));
+
+      const targetW = Math.round(sourceVideo.videoWidth * scale);
+      const targetH = Math.round(sourceVideo.videoHeight * scale);
+
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = targetW;
+      offCanvas.height = targetH;
+      const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+
+      extractedFrames = [];
+
+      // Parse Chroma color
+      const applyChroma = chromaKeyEnabled.checked;
+      let targetR = 0, targetG = 255, targetB = 0;
+      let tolSq = 45 * 45 * 3;
+      if (applyChroma) {
+        const hex = chromaColor.value;
+        targetR = parseInt(hex.substr(1, 2), 16);
+        targetG = parseInt(hex.substr(3, 2), 16);
+        targetB = parseInt(hex.substr(5, 2), 16);
+        const tol = (parseInt(chromaTolerance.value) / 100) * 255;
+        tolSq = tol * tol * 3;
+      }
+
+      for (let i = 0; i < numFrames; i++) {
+        const time = Math.min(start + i * step, end);
+        await seekVideo(time);
+
+        offCtx.clearRect(0, 0, targetW, targetH);
+        offCtx.drawImage(sourceVideo, 0, 0, targetW, targetH);
+
+        if (applyChroma) {
+          const imgData = offCtx.getImageData(0, 0, targetW, targetH);
+          const data = imgData.data;
+          for (let p = 0; p < data.length; p += 4) {
+            const r = data[p];
+            const g = data[p + 1];
+            const b = data[p + 2];
+            const distSq = (r - targetR)**2 + (g - targetG)**2 + (b - targetB)**2;
+            if (distSq < tolSq) {
+              data[p + 3] = 0; // Transparent
+            }
+          }
+          offCtx.putImageData(imgData, 0, 0);
+        }
+
+        // Save as independent image bitmap
+        const frameData = offCtx.getImageData(0, 0, targetW, targetH);
+        extractedFrames.push(frameData);
+      }
+
+      btnGenerateSheet.disabled = false;
+      btnGenerateSheet.textContent = 'Сгенерировать Спрайт-лист';
+
+      buildAtlas(targetW, targetH);
+    }
+
+    function seekVideo(time) {
+      return new Promise((resolve) => {
+        sourceVideo.currentTime = time;
+        const onSeeked = () => {
+          sourceVideo.removeEventListener('seeked', onSeeked);
+          resolve();
+        };
+        sourceVideo.addEventListener('seeked', onSeeked);
+      });
+    }
+
+    function buildAtlas(frameW, frameH) {
+      const numFrames = extractedFrames.length;
+      let cols = 4;
+      const colSetting = columnsSelect.value;
+      if (colSetting === 'strip') cols = numFrames;
+      else if (colSetting === 'auto') cols = Math.ceil(Math.sqrt(numFrames));
+      else cols = parseInt(colSetting);
+
+      const rows = Math.ceil(numFrames / cols);
+      const totalW = cols * frameW;
+      const totalH = rows * frameH;
+
+      atlasCanvas.width = totalW;
+      atlasCanvas.height = totalH;
+      atlasCtx.clearRect(0, 0, totalW, totalH);
+
+      const frameCoords = [];
+
+      for (let i = 0; i < numFrames; i++) {
+        const c = i % cols;
+        const r = Math.floor(i / cols);
+        const x = c * frameW;
+        const y = r * frameH;
+
+        atlasCtx.putImageData(extractedFrames[i], x, y);
+
+        frameCoords.push({
+          frame: { x, y, w: frameW, h: frameH },
+          rotated: false,
+          trimmed: false,
+          spriteSourceSize: { x: 0, y: 0, w: frameW, h: frameH },
+          sourceSize: { w: frameW, h: frameH }
+        });
+      }
+
+      atlasDimText.textContent = `${totalW} × ${totalH} px (${numFrames} кадров, ${cols}×${rows})`;
+
+      generatedAtlasData = {
+        frames: frameCoords,
+        meta: {
+          app: "xGR3ENx Video to Spritesheet",
+          size: { w: totalW, h: totalH },
+          frameCount: numFrames,
+          frameWidth: frameW,
+          frameHeight: frameH,
+          columns: cols,
+          rows: rows
+        }
+      };
+
+      // Show Results
+      resultsCard.style.display = 'block';
+      exportGroup.style.display = 'flex';
+      codeCard.style.display = 'block';
+
+      // Setup Live Preview
+      animPreviewCanvas.width = frameW;
+      animPreviewCanvas.height = frameH;
+      currentAnimIndex = 0;
+      isPlaying = true;
+      btnAnimPlayPause.textContent = 'Пауза';
+      restartAnimLoop();
+      updateCodeOutput(frameW, frameH, numFrames, cols);
+    }
+
+    btnGenerateSheet.addEventListener('click', extractFrames);
+
+    // Animation Preview Logic
+    function drawPreviewFrame() {
+      if (!extractedFrames.length) return;
+      animCtx.clearRect(0, 0, animPreviewCanvas.width, animPreviewCanvas.height);
+      animCtx.putImageData(extractedFrames[currentAnimIndex], 0, 0);
+      previewFrameCounter.textContent = `Кадр: ${currentAnimIndex + 1} / ${extractedFrames.length}`;
+    }
+
+    function restartAnimLoop() {
+      if (animInterval) clearInterval(animInterval);
+      const fps = parseInt(animFpsInput.value);
+      animFpsVal.textContent = fps;
+      animInterval = setInterval(() => {
+        if (!isPlaying || !extractedFrames.length) return;
+        currentAnimIndex = (currentAnimIndex + 1) % extractedFrames.length;
+        drawPreviewFrame();
+      }, 1000 / fps);
+    }
+
+    btnAnimPlayPause.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      btnAnimPlayPause.textContent = isPlaying ? 'Пауза' : 'Играть';
+    });
+
+    btnAnimPrev.addEventListener('click', () => {
+      isPlaying = false;
+      btnAnimPlayPause.textContent = 'Играть';
+      currentAnimIndex = (currentAnimIndex - 1 + extractedFrames.length) % extractedFrames.length;
+      drawPreviewFrame();
+    });
+
+    btnAnimNext.addEventListener('click', () => {
+      isPlaying = false;
+      btnAnimPlayPause.textContent = 'Играть';
+      currentAnimIndex = (currentAnimIndex + 1) % extractedFrames.length;
+      drawPreviewFrame();
+    });
+
+    animFpsInput.addEventListener('input', restartAnimLoop);
+
+    // Code Generator
+    function updateCodeOutput(fw, fh, totalFrames, cols) {
+      const dur = (totalFrames / parseInt(animFpsInput.value)).toFixed(2);
+      const code = `/* 1. CSS Keyframe Steps Animation */
+.sprite-anim {
+  width: ${fw}px;
+  height: ${fh}px;
+  background-image: url('spritesheet.png');
+  background-repeat: no-repeat;
+  animation: playSprite ${dur}s steps(${cols}) infinite;
+}
+
+/* 2. Vanilla JS Canvas Player */
+class SpriteSheetPlayer {
+  constructor(img, frameW = ${fw}, frameH = ${fh}, totalFrames = ${totalFrames}, cols = ${cols}) {
+    this.img = img;
+    this.fw = frameW;
+    this.fh = frameH;
+    this.total = totalFrames;
+    this.cols = cols;
+    this.frame = 0;
+  }
+  update() {
+    this.frame = (this.frame + 1) % this.total;
+  }
+  draw(ctx, dx, dy) {
+    const sx = (this.frame % this.cols) * this.fw;
+    const sy = Math.floor(this.frame / this.cols) * this.fh;
+    ctx.drawImage(this.img, sx, sy, this.fw, this.fh, dx, dy, this.fw, this.fh);
+  }
+}`;
+      codeOutput.value = code;
+    }
+
+    // Downloads & Copies
+    function downloadFile(url, name) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    btnDownloadPng.addEventListener('click', () => {
+      if (!generatedAtlasData) return;
+      downloadFile(atlasCanvas.toDataURL('image/png'), 'spritesheet.png');
+    });
+
+    btnDownloadJson.addEventListener('click', () => {
+      if (!generatedAtlasData) return;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generatedAtlasData, null, 2));
+      downloadFile(dataStr, 'spritesheet.json');
+    });
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const old = btn.textContent;
+        btn.textContent = '✓ Скопировано!';
+        setTimeout(() => btn.textContent = old, 2000);
+      });
+    }
+
+    btnCopyCss.addEventListener('click', () => {
+      const css = codeOutput.value.split('/* 2.')[0].trim();
+      copyToClipboard(css, btnCopyCss);
+    });
+
+    btnCopyJs.addEventListener('click', () => {
+      const js = '/* 2.' + codeOutput.value.split('/* 2.')[1];
+      copyToClipboard(js, btnCopyJs);
+    });
+  </script>
+
+</body>
+</html>

@@ -75,6 +75,7 @@
             </div>
 
             <button id="downloadBtn" class="btn-cyber btn-cyber-primary tool-btn" style="width: 100%; display: none;">Скачать</button>
+            <button id="copyBase64Btn" class="btn-cyber btn-cyber-outline tool-btn" style="width: 100%; display: none; margin-top: 0.5rem;">Скопировать Base64 (Data URI)</button>
           </aside>
 
           <!-- Main Workspace -->
@@ -384,6 +385,18 @@
         a.download = currentFile.name.replace(/\.[^/.]+$/, "") + "_opt." + (ext === 'jpeg' ? 'jpg' : ext);
         a.click();
       };
+
+      const copyBase64Btn = document.getElementById('copyBase64Btn');
+      if (copyBase64Btn) {
+        copyBase64Btn.style.display = 'inline-flex';
+        copyBase64Btn.onclick = () => {
+          navigator.clipboard.writeText(dataUrl).then(() => {
+            const old = copyBase64Btn.textContent;
+            copyBase64Btn.textContent = '✓ Скопировано!';
+            setTimeout(() => copyBase64Btn.textContent = old, 2000);
+          });
+        };
+      }
     }
   </script>
 
