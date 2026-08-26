@@ -99,6 +99,36 @@
   margin-bottom: 1.25rem;
 }
 
+.form-check {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-bottom: 1.25rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.form-check input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  margin: 0 !important;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.form-check label, .form-check span {
+  margin: 0 !important;
+  display: inline-block !important;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
 .form-label {
   display: block;
   font-weight: 600;
