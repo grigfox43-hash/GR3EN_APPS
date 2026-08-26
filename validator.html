@@ -122,7 +122,16 @@
           <!-- Main Workspace -->
           <div class="tool-main">
             <div id="previewContainer" style="display: none; flex-direction: column; align-items: center; margin-top: 3rem; background: linear-gradient(180deg, rgba(30, 214, 91, 0.02) 0%, rgba(10, 12, 16, 0.8) 100%); border: 1px solid rgba(30, 214, 91, 0.1); padding: 3rem 2rem; border-radius: 24px; position: relative; overflow: hidden;">
-              <h3 style="color: var(--color-primary); margin-bottom: 2rem; font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 2px; text-shadow: 0 0 15px rgba(30,214,91,0.4);">LIVE PREVIEW</h3>
+              <h3 style="color: var(--color-primary); margin-bottom: 1.5rem; font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 2px; text-shadow: 0 0 15px rgba(30,214,91,0.4);">LIVE PREVIEW</h3>
+
+              <!-- Playable Live Analytics & Heatmap HUD -->
+              <div id="analyticsHud" style="display: flex; gap: 1.5rem; justify-content: center; align-items: center; margin-bottom: 1.5rem; background: rgba(0,0,0,0.7); padding: 8px 18px; border-radius: 30px; border: 1px solid rgba(30,214,91,0.25); font-family: monospace; font-size: 0.85rem; flex-wrap: wrap;">
+                <div style="color: #fff;">👆 Тапы: <span id="hudTapCount" style="color: var(--color-primary); font-weight: bold;">0</span></div>
+                <div style="color: #fff;">⏱️ TTFI (Первый клик): <span id="hudTtfi" style="color: #00ffff; font-weight: bold;">--</span></div>
+                <div style="color: #fff;">🎯 CTA Клики: <span id="hudCtaCount" style="color: #ffcc00; font-weight: bold;">0</span></div>
+                <button id="btnToggleHeatmap" type="button" style="background: rgba(255,255,255,0.05); color: #aaa; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 3px 10px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">🔥 Heatmap: ВЫКЛ</button>
+                <button id="btnResetStats" type="button" style="background: transparent; color: #888; border: none; font-size: 0.85rem; cursor: pointer;" title="Сбросить статистику">🔄</button>
+              </div>
 
               <!-- 1. Single Device Mock -->
               <div id="singleDeviceView" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
@@ -131,6 +140,9 @@
                   <div id="deviceNotch" style="display: none; position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 170px; height: 28px; background: #000; border-radius: 0 0 20px 20px; z-index: 10; box-shadow: inset 0 -2px 5px rgba(255,255,255,0.05);"></div>
                   
                   <div style="width: 100%; height: 100%; border-radius: 34px; overflow: hidden; background: #111; position: relative;">
+                    <!-- Heatmap Tap Ripples Overlay -->
+                    <div id="heatmapOverlay" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 90; overflow: hidden; display: none;"></div>
+
                     <!-- Network Throttling Loading Overlay -->
                     <div id="throttlingOverlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5,7,10,0.95); z-index: 100; flex-direction: column; align-items: center; justify-content: center; padding: 2rem;">
                       <div style="width: 48px; height: 48px; border: 3px solid rgba(30,214,91,0.2); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem;"></div>
@@ -264,6 +276,10 @@
               
               <style>
                 @keyframes spin { 100% { transform: rotate(360deg); } }
+                @keyframes fadeRipple {
+                  0% { transform: scale(0.4); opacity: 0.9; }
+                  100% { transform: scale(2.4); opacity: 0; }
+                }
                 .device-controls button:hover, .device-controls select:hover {
                   background: rgba(30, 214, 91, 0.1) !important;
                   border-color: rgba(30, 214, 91, 0.4) !important;
@@ -619,6 +635,57 @@
                 });
              }
           });
+
+          // 5. User Interaction & Tap Tracker
+          const __gameStartTime = performance.now();
+          let __hasTapped = false;
+          window.addEventListener('pointerdown', (e) => {
+            const elapsed = (performance.now() - __gameStartTime) / 1000;
+            window.parent.postMessage({
+              type: 'userTap',
+              x: e.clientX,
+              y: e.clientY,
+              time: elapsed,
+              isFirst: !__hasTapped
+            }, '*');
+            __hasTapped = true;
+          }, true);
+
+          // 6. CTA Call Interceptor
+          function __reportCTA(api, url) {
+            window.parent.postMessage({
+              type: 'ctaClick',
+              api: api,
+              url: url || ''
+            }, '*');
+          }
+
+          if (window.mraid) {
+            const origMraidOpen = window.mraid.open;
+            window.mraid.open = function(url) {
+              __reportCTA('mraid.open()', url);
+              if (origMraidOpen) origMraidOpen.apply(this, arguments);
+            };
+          }
+          if (window.dapi) {
+            const origDapi = window.dapi.openStoreUrl;
+            window.dapi.openStoreUrl = function(url) {
+              __reportCTA('dapi.openStoreUrl()', url);
+              if (origDapi) origDapi.apply(this, arguments);
+            };
+          }
+          if (window.FbPlayableAd) {
+            const origFb = window.FbPlayableAd.onCTAClick;
+            window.FbPlayableAd.onCTAClick = function() {
+              __reportCTA('FbPlayableAd.onCTAClick()', 'Facebook Store');
+              if (origFb) origFb.apply(this, arguments);
+            };
+          }
+          const origWindowOpen = window.open;
+          window.open = function(url) {
+            __reportCTA('window.open()', url);
+            if (origWindowOpen) return origWindowOpen.apply(this, arguments);
+          };
         })();
       <\/script>`;
       
@@ -680,6 +747,41 @@
       setTimeout(() => previewContainer.scrollIntoView({ behavior: 'smooth', block: 'start' }), 500);
     }
 
+    // Analytics & Heatmap Tracker
+    const hudTapCount = document.getElementById('hudTapCount');
+    const hudTtfi = document.getElementById('hudTtfi');
+    const hudCtaCount = document.getElementById('hudCtaCount');
+    const btnToggleHeatmap = document.getElementById('btnToggleHeatmap');
+    const btnResetStats = document.getElementById('btnResetStats');
+    const heatmapOverlay = document.getElementById('heatmapOverlay');
+
+    let isHeatmapActive = false;
+    let tapCounter = 0;
+    let ctaCounter = 0;
+    let firstInteractionRecorded = false;
+
+    if (btnToggleHeatmap) {
+      btnToggleHeatmap.addEventListener('click', () => {
+        isHeatmapActive = !isHeatmapActive;
+        btnToggleHeatmap.textContent = isHeatmapActive ? '🔥 Heatmap: ВКЛ' : '🔥 Heatmap: ВЫКЛ';
+        btnToggleHeatmap.style.background = isHeatmapActive ? 'rgba(30,214,91,0.2)' : 'rgba(255,255,255,0.05)';
+        btnToggleHeatmap.style.color = isHeatmapActive ? 'var(--color-primary)' : '#aaa';
+        if (heatmapOverlay) heatmapOverlay.style.display = isHeatmapActive ? 'block' : 'none';
+      });
+    }
+
+    if (btnResetStats) {
+      btnResetStats.addEventListener('click', () => {
+        tapCounter = 0;
+        ctaCounter = 0;
+        firstInteractionRecorded = false;
+        if (hudTapCount) hudTapCount.textContent = '0';
+        if (hudTtfi) hudTtfi.textContent = '--';
+        if (hudCtaCount) hudCtaCount.textContent = '0';
+        if (heatmapOverlay) heatmapOverlay.innerHTML = '';
+      });
+    }
+
     window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'console') {
         const level = event.data.level;
@@ -688,6 +790,33 @@
       } else if (event.data && event.data.type === 'fps') {
         const fpsCounter = document.getElementById('fpsCounter');
         if (fpsCounter) fpsCounter.innerText = event.data.value + ' FPS';
+      } else if (event.data && event.data.type === 'userTap') {
+        tapCounter++;
+        if (hudTapCount) hudTapCount.textContent = tapCounter;
+        if (event.data.isFirst && !firstInteractionRecorded) {
+          firstInteractionRecorded = true;
+          if (hudTtfi) hudTtfi.textContent = event.data.time.toFixed(2) + 's';
+          log(`[АНАЛИТИКА] Первый клик игрока (TTFI): ${event.data.time.toFixed(2)} сек`, 'success');
+        }
+        if (isHeatmapActive && heatmapOverlay) {
+          const dot = document.createElement('div');
+          dot.style.position = 'absolute';
+          dot.style.left = (event.data.x - 15) + 'px';
+          dot.style.top = (event.data.y - 15) + 'px';
+          dot.style.width = '30px';
+          dot.style.height = '30px';
+          dot.style.borderRadius = '50%';
+          dot.style.background = 'radial-gradient(circle, rgba(255,50,50,0.8) 0%, rgba(255,200,0,0.5) 50%, transparent 100%)';
+          dot.style.pointerEvents = 'none';
+          dot.style.boxShadow = '0 0 15px rgba(255,80,0,0.8)';
+          dot.style.animation = 'fadeRipple 1.5s forwards';
+          heatmapOverlay.appendChild(dot);
+          setTimeout(() => dot.remove(), 1600);
+        }
+      } else if (event.data && event.data.type === 'ctaClick') {
+        ctaCounter++;
+        if (hudCtaCount) hudCtaCount.textContent = ctaCounter;
+        log(`[🎯 CTA ПЕРЕХОД] ${event.data.api} ➔ "${event.data.url || 'Store'}"`, 'success');
       }
     });
 

@@ -13,6 +13,7 @@
   
   <link rel="stylesheet" href="css/modern.css">
   <link rel="stylesheet" href="css/tools.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 
 <body>
@@ -44,11 +45,17 @@
       <div class="site-container">
         
         <div class="tool-header">
-          <h1>TEXTURE ATLAS PACKER</h1>
-          <p>Объединение множества картинок в единый атлас. Снижает количество Draw Calls в WebGL играх.</p>
+          <h1>TEXTURE ATLAS & SPRITE SLICER</h1>
+          <p>Pack multiple images into a unified atlas or slice existing sprite sheets (Spine, Unity, Packs) back into individual frames with ZIP export.</p>
         </div>
 
-        <div class="tool-layout">
+        <!-- Mode Switcher -->
+        <div style="display: flex; gap: 0.8rem; margin-bottom: 2rem; background: rgba(0,0,0,0.4); padding: 6px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: fit-content;">
+          <button id="tabPacker" type="button" style="padding: 8px 20px; font-weight: 700; font-size: 0.95rem; background: var(--color-primary); color: #000; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s;">📦 Atlas Packer</button>
+          <button id="tabSlicer" type="button" style="padding: 8px 20px; font-weight: 700; font-size: 0.95rem; background: transparent; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s;">✂️ Sprite Slicer</button>
+        </div>
+
+        <div id="packerLayout" class="tool-layout">
           <!-- Settings Sidebar -->
           <aside class="tool-sidebar">
             <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">УПАКОВКА</h3>
@@ -146,6 +153,82 @@
                   </div>
                 </div>
               </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Slicer Layout -->
+        <div id="slicerLayout" class="tool-layout" style="display: none;">
+          <!-- Slicer Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">SPRITE SLICING</h3>
+            
+            <div id="slicerDropzone" class="dropzone" style="min-height: 120px; padding: 1rem; border-width: 1px;">
+              <p style="font-size: 0.95rem;">Drop Sprite Sheet (PNG/JPG) here</p>
+              <input type="file" id="slicerFileInput" accept="image/png, image/jpeg, image/webp" style="display:none;">
+            </div>
+
+            <div class="form-group" style="margin-top: 1.5rem;">
+              <label class="form-label" for="slicingModeSelect">Slicing Mode</label>
+              <select id="slicingModeSelect" class="form-select">
+                <option value="auto" selected>✨ Smart Auto-Detect (by transparency)</option>
+                <option value="grid">📐 Uniform Grid (Columns × Rows)</option>
+              </select>
+            </div>
+
+            <!-- Grid Options (conditional) -->
+            <div id="gridOptionsGroup" style="display: none; margin-bottom: 1rem;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label">Columns (Cols)</label>
+                  <input type="number" id="sliceColsInput" class="form-input" value="4" min="1" max="64">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label">Rows (Rows)</label>
+                  <input type="number" id="sliceRowsInput" class="form-input" value="4" min="1" max="64">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" id="minSizeGroup">
+              <label class="form-label" for="minSpriteSizeInput">Min sprite size (px): <span id="minSpriteSizeVal" style="color: var(--color-primary);">8</span></label>
+              <input type="range" id="minSpriteSizeInput" min="4" max="64" step="2" value="8">
+            </div>
+
+            <button id="btnSliceSprites" class="btn-cyber btn-cyber-primary" style="width: 100%; margin-top: 0.5rem; font-size: 1.1rem; padding: 0.5rem;">
+              ✂️ Slice Sprites
+            </button>
+
+            <!-- Slicer Export Group -->
+            <div id="slicerExportGroup" style="display:none; margin-top: 1.5rem; gap: 0.5rem; flex-direction: column;">
+              <div style="color: var(--color-primary); font-family: monospace; font-size: 0.85rem; margin-bottom: 0.3rem;">Sprites found: <span id="slicedCountBadge" style="font-weight: 700;">0</span></div>
+              <button id="btnDownloadZip" class="btn-cyber btn-cyber-primary" style="width: 100%; font-size: 0.95rem; padding: 0.55rem;">📦 Download All as .ZIP</button>
+              <button id="btnDownloadSlicerJson" class="btn-cyber btn-cyber-outline" style="width: 100%; font-size: 0.85rem; padding: 0.4rem;">Download Sliced JSON</button>
+            </div>
+          </aside>
+
+          <!-- Slicer Main Workspace -->
+          <div class="tool-main" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Slicer Visual Canvas -->
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(30, 214, 91, 0.3); border-radius: 12px; padding: 1.2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                <h4 style="color: var(--color-primary); margin: 0; font-family: var(--font-display); letter-spacing: 1px;">SPRITE SHEET & BOUNDS</h4>
+                <span id="slicerDimensionsText" style="font-size: 0.8rem; color: var(--color-text-muted); font-family: monospace;">No image loaded</span>
+              </div>
+
+              <div style="width: 100%; min-height: 320px; display: flex; align-items: center; justify-content: center; background: #05070a; background-image: linear-gradient(45deg, #141820 25%, transparent 25%), linear-gradient(-45deg, #141820 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #141820 75%), linear-gradient(-45deg, transparent 75%, #141820 75%); background-size: 20px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); padding: 1rem; overflow: auto;">
+                <canvas id="slicerCanvas" style="box-shadow: 0 0 20px rgba(0,0,0,0.8); max-width: 100%; max-height: 440px;"></canvas>
+              </div>
+            </div>
+
+            <!-- Sliced Frames Gallery -->
+            <div id="slicedGalleryCard" style="display: none; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h4 style="color: #fff; margin: 0; font-family: var(--font-display);">SLICED FRAMES (CLICK TO DOWNLOAD):</h4>
+              </div>
+              <div id="slicedThumbnailsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 0.8rem; max-height: 260px; overflow-y: auto; padding: 0.5rem; background: #080a0f; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);"></div>
             </div>
 
           </div>
@@ -561,6 +644,308 @@
         });
       });
     }
+
+    // ==========================================
+    // ✂️ SPRITE SLICER & SPLITTER MODULE
+    // ==========================================
+    const tabPacker = document.getElementById('tabPacker');
+    const tabSlicer = document.getElementById('tabSlicer');
+    const packerLayout = document.getElementById('packerLayout');
+    const slicerLayout = document.getElementById('slicerLayout');
+
+    tabPacker.addEventListener('click', () => {
+      tabPacker.style.background = 'var(--color-primary)';
+      tabPacker.style.color = '#000';
+      tabSlicer.style.background = 'transparent';
+      tabSlicer.style.color = '#fff';
+      packerLayout.style.display = 'grid';
+      slicerLayout.style.display = 'none';
+    });
+
+    tabSlicer.addEventListener('click', () => {
+      tabSlicer.style.background = 'var(--color-primary)';
+      tabSlicer.style.color = '#000';
+      tabPacker.style.background = 'transparent';
+      tabPacker.style.color = '#fff';
+      slicerLayout.style.display = 'grid';
+      packerLayout.style.display = 'none';
+    });
+
+    const slicerDropzone = document.getElementById('slicerDropzone');
+    const slicerFileInput = document.getElementById('slicerFileInput');
+    const slicingModeSelect = document.getElementById('slicingModeSelect');
+    const gridOptionsGroup = document.getElementById('gridOptionsGroup');
+    const minSizeGroup = document.getElementById('minSizeGroup');
+    const sliceColsInput = document.getElementById('sliceColsInput');
+    const sliceRowsInput = document.getElementById('sliceRowsInput');
+    const minSpriteSizeInput = document.getElementById('minSpriteSizeInput');
+    const minSpriteSizeVal = document.getElementById('minSpriteSizeVal');
+    const btnSliceSprites = document.getElementById('btnSliceSprites');
+    const slicerExportGroup = document.getElementById('slicerExportGroup');
+    const slicedCountBadge = document.getElementById('slicedCountBadge');
+    const btnDownloadZip = document.getElementById('btnDownloadZip');
+    const btnDownloadSlicerJson = document.getElementById('btnDownloadSlicerJson');
+    const slicerDimensionsText = document.getElementById('slicerDimensionsText');
+    const slicerCanvas = document.getElementById('slicerCanvas');
+    const slicerCtx = slicerCanvas.getContext('2d');
+    const slicedGalleryCard = document.getElementById('slicedGalleryCard');
+    const slicedThumbnailsContainer = document.getElementById('slicedThumbnailsContainer');
+
+    let loadedSlicerImg = null;
+    let detectedSlices = [];
+
+    slicingModeSelect.addEventListener('change', () => {
+      const isGrid = slicingModeSelect.value === 'grid';
+      gridOptionsGroup.style.display = isGrid ? 'block' : 'none';
+      minSizeGroup.style.display = isGrid ? 'none' : 'block';
+    });
+
+    minSpriteSizeInput.addEventListener('input', () => {
+      minSpriteSizeVal.textContent = minSpriteSizeInput.value;
+    });
+
+    slicerDropzone.addEventListener('click', () => slicerFileInput.click());
+    slicerDropzone.addEventListener('dragover', (e) => { e.preventDefault(); slicerDropzone.classList.add('dragover'); });
+    slicerDropzone.addEventListener('dragleave', () => slicerDropzone.classList.remove('dragover'));
+    slicerDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      slicerDropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) loadSlicerFile(e.dataTransfer.files[0]);
+    });
+    slicerFileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) loadSlicerFile(e.target.files[0]);
+    });
+
+    function loadSlicerFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          loadedSlicerImg = img;
+          slicerDimensionsText.textContent = `${img.width} × ${img.height} px (${(file.size/1024).toFixed(1)} KB)`;
+          slicerCanvas.width = img.width;
+          slicerCanvas.height = img.height;
+          slicerCtx.clearRect(0, 0, img.width, img.height);
+          slicerCtx.drawImage(img, 0, 0);
+          detectedSlices = [];
+          slicedGalleryCard.style.display = 'none';
+          slicerExportGroup.style.display = 'none';
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    btnSliceSprites.addEventListener('click', () => {
+      if (!loadedSlicerImg) {
+        alert('Пожалуйста, загрузите изображение спрайт-листа');
+        return;
+      }
+
+      const w = loadedSlicerImg.width;
+      const h = loadedSlicerImg.height;
+      detectedSlices = [];
+
+      if (slicingModeSelect.value === 'grid') {
+        const cols = Math.max(1, parseInt(sliceColsInput.value) || 4);
+        const rows = Math.max(1, parseInt(sliceRowsInput.value) || 4);
+        const tileW = Math.floor(w / cols);
+        const tileH = Math.floor(h / rows);
+
+        let id = 1;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            detectedSlices.push({
+              id: id++,
+              name: `sprite_${c}_${r}`,
+              x: c * tileW,
+              y: r * tileH,
+              w: tileW,
+              h: tileH
+            });
+          }
+        }
+      } else {
+        // Auto-detect non-transparent bounding boxes using BFS
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = w;
+        tempCanvas.height = h;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(loadedSlicerImg, 0, 0);
+        const imgData = tempCtx.getImageData(0, 0, w, h);
+        const data = imgData.data;
+
+        const visited = new Uint8Array(w * h);
+        const minSize = parseInt(minSpriteSizeInput.value) || 8;
+        let id = 1;
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const idx = y * w + x;
+            if (visited[idx]) continue;
+            
+            // Check alpha channel > 15
+            if (data[idx * 4 + 3] > 15) {
+              // BFS to find bounding box
+              let minX = x, maxX = x, minY = y, maxY = y;
+              const queue = [idx];
+              visited[idx] = 1;
+
+              while (queue.length > 0) {
+                const cur = queue.pop();
+                const cx = cur % w;
+                const cy = Math.floor(cur / w);
+
+                if (cx < minX) minX = cx;
+                if (cx > maxX) maxX = cx;
+                if (cy < minY) minY = cy;
+                if (cy > maxY) maxY = cy;
+
+                // 4-neighborhood
+                const neighbors = [
+                  cx > 0 ? cur - 1 : -1,
+                  cx < w - 1 ? cur + 1 : -1,
+                  cy > 0 ? cur - w : -1,
+                  cy < h - 1 ? cur + w : -1
+                ];
+
+                for (let n of neighbors) {
+                  if (n >= 0 && !visited[n]) {
+                    visited[n] = 1;
+                    if (data[n * 4 + 3] > 15) {
+                      queue.push(n);
+                    }
+                  }
+                }
+              }
+
+              const bw = maxX - minX + 1;
+              const bh = maxY - minY + 1;
+              if (bw >= minSize && bh >= minSize) {
+                detectedSlices.push({
+                  id: id++,
+                  name: `sprite_${id-1}`,
+                  x: minX,
+                  y: minY,
+                  w: bw,
+                  h: bh
+                });
+              }
+            }
+          }
+        }
+      }
+
+      renderSlicesVisual();
+    });
+
+    function renderSlicesVisual() {
+      if (!loadedSlicerImg) return;
+      const w = loadedSlicerImg.width;
+      const h = loadedSlicerImg.height;
+
+      slicerCtx.clearRect(0, 0, w, h);
+      slicerCtx.drawImage(loadedSlicerImg, 0, 0);
+
+      slicedThumbnailsContainer.innerHTML = '';
+
+      detectedSlices.forEach(slice => {
+        // Draw green bounding box on canvas
+        slicerCtx.strokeStyle = '#1ed65f';
+        slicerCtx.lineWidth = 2;
+        slicerCtx.strokeRect(slice.x, slice.y, slice.w, slice.h);
+
+        // Draw badge
+        slicerCtx.fillStyle = 'rgba(0,0,0,0.85)';
+        slicerCtx.fillRect(slice.x, slice.y, 22, 16);
+        slicerCtx.fillStyle = '#1ed65f';
+        slicerCtx.font = '10px monospace';
+        slicerCtx.fillText(slice.id, slice.x + 4, slice.y + 12);
+
+        // Create individual crop canvas
+        const crop = document.createElement('canvas');
+        crop.width = slice.w;
+        crop.height = slice.h;
+        const cropCtx = crop.getContext('2d');
+        cropCtx.drawImage(loadedSlicerImg, slice.x, slice.y, slice.w, slice.h, 0, 0, slice.w, slice.h);
+        slice.canvas = crop;
+
+        // Create Thumbnail element
+        const thumbDiv = document.createElement('div');
+        thumbDiv.style.background = 'rgba(255,255,255,0.03)';
+        thumbDiv.style.border = '1px solid rgba(255,255,255,0.1)';
+        thumbDiv.style.borderRadius = '6px';
+        thumbDiv.style.padding = '6px';
+        thumbDiv.style.display = 'flex';
+        thumbDiv.style.flexDirection = 'column';
+        thumbDiv.style.alignItems = 'center';
+        thumbDiv.style.cursor = 'pointer';
+        thumbDiv.title = `Нажмите для скачивания sprite_${slice.id}.png (${slice.w}x${slice.h})`;
+
+        const thumbImg = document.createElement('img');
+        thumbImg.src = crop.toDataURL('image/png');
+        thumbImg.style.maxWidth = '60px';
+        thumbImg.style.maxHeight = '60px';
+        thumbImg.style.objectFit = 'contain';
+
+        const thumbLabel = document.createElement('span');
+        thumbLabel.textContent = `#${slice.id} (${slice.w}×${slice.h})`;
+        thumbLabel.style.fontSize = '0.7rem';
+        thumbLabel.style.color = '#aaa';
+        thumbLabel.style.fontFamily = 'monospace';
+        thumbLabel.style.marginTop = '4px';
+
+        thumbDiv.appendChild(thumbImg);
+        thumbDiv.appendChild(thumbLabel);
+
+        thumbDiv.addEventListener('click', () => {
+          download(crop.toDataURL('image/png'), `sprite_${slice.id}.png`);
+        });
+
+        slicedThumbnailsContainer.appendChild(thumbDiv);
+      });
+
+      slicedCountBadge.textContent = detectedSlices.length;
+      slicedGalleryCard.style.display = detectedSlices.length > 0 ? 'block' : 'none';
+      slicerExportGroup.style.display = detectedSlices.length > 0 ? 'flex' : 'none';
+    }
+
+    btnDownloadZip.addEventListener('click', () => {
+      if (!detectedSlices.length) return;
+      const zip = new JSZip();
+
+      detectedSlices.forEach(slice => {
+        if (slice.canvas) {
+          const dataUrl = slice.canvas.toDataURL('image/png');
+          const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+          zip.file(`sprite_${slice.id}.png`, base64Data, { base64: true });
+        }
+      });
+
+      zip.generateAsync({ type: 'blob' }).then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'sprites_sliced.zip';
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    });
+
+    btnDownloadSlicerJson.addEventListener('click', () => {
+      if (!detectedSlices.length) return;
+      const frames = {};
+      detectedSlices.forEach(slice => {
+        frames[`sprite_${slice.id}.png`] = {
+          frame: { x: slice.x, y: slice.y, w: slice.w, h: slice.h }
+        };
+      });
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ frames }, null, 2));
+      const a = document.createElement('a');
+      a.href = dataStr;
+      a.download = 'sliced_sprites.json';
+      a.click();
+    });
   </script>
 
 </body>
