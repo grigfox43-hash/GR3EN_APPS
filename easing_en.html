@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Bézier Easing & Tween Studio | xGR3ENx Tools</title>
+  
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="font/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/modern.css">
+  <link rel="stylesheet" href="css/tools.css">
+  <style>
+    .preset-chip {
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .preset-chip:hover, .preset-chip.active {
+      background: rgba(30, 214, 91, 0.15);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      font-weight: 700;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header scrolled">
+    <div class="site-container">
+      <div class="nav-wrapper">
+        <a href="index_en.html" class="brand-logo-link" title="xGR3ENx Tools">
+          <img class="brand-logo-img" src="img/logo.svg" alt="xGR3ENx Logo" width="44" height="44">
+          <div class="brand-logo-text">
+            xGR3ENx
+            <span>TOOLS</span>
+          </div>
+        </a>
+        <ul class="nav-menu">
+          <li>
+            <div class="lang-switcher">
+              <button class="lang-btn" data-lang="ru" onclick="window.location.href='easing_en.html'">RU</button>
+              <button class="lang-btn active" data-lang="en" onclick="window.location.href='easing_en.html'">EN</button>
+            </div>
+          </li>
+          <li><a href="index_en.html" class="nav-item-link">HOME</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding-top: 100px;">
+    <section class="section-wrapper" style="padding-top: 2rem;">
+      <div class="site-container">
+        
+        <div class="tool-header">
+          <h1>BÉZIER EASING & TWEEN STUDIO</h1>
+          <p>Interactive editor for easing curves and game animations. Create smooth physical effects (Bounce, Elastic, BackOut) with lightweight Vanilla JS (0 KB size) with zero GSAP/TweenMax dependencies.</p>
+        </div>
+
+        <div class="tool-layout">
+          <!-- Settings Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">CURVE PRESETS</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1.5rem;">
+              <div class="preset-chip active" data-preset="bounceOut">🏀 Bounce Out</div>
+              <div class="preset-chip" data-preset="elasticOut">🪀 Elastic Out</div>
+              <div class="preset-chip" data-preset="backOut">🏹 Back Out</div>
+              <div class="preset-chip" data-preset="easeOutCubic">🌊 Smooth Cubic</div>
+              <div class="preset-chip" data-preset="easeInOutExpo">⚡ Expo In-Out</div>
+              <div class="preset-chip" data-preset="easeOutQuad">🚀 Quad Ease</div>
+              <div class="preset-chip" data-preset="anticipate">🎯 Anticipate</div>
+              <div class="preset-chip" data-preset="linear">📏 Linear</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Animation Duration: <span id="durVal" style="color: var(--color-primary);">0.8</span>s</label>
+              <input type="range" id="durInput" min="0.2" max="3.0" step="0.1" value="0.8">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Bezier Coordinates: <span id="bezierCoordsText" style="font-family: monospace; font-size: 0.8rem; color: var(--color-primary);">[0.34, 1.56, 0.64, 1]</span></label>
+            </div>
+
+            <button id="btnPlayAnim" class="btn-cyber btn-cyber-primary" style="width: 100%; margin-top: 0.5rem; font-size: 1.1rem; padding: 0.6rem;">
+              ▶ Test Animation
+            </button>
+            <button id="btnCopyJsFunc" class="btn-cyber btn-cyber-outline" style="width: 100%; margin-top: 0.5rem; font-size: 0.95rem; padding: 0.5rem;">
+              Copy 0 KB JS Function
+            </button>
+            <button id="btnCopyCssBezier" class="btn-cyber btn-cyber-outline" style="width: 100%; margin-top: 0.5rem; font-size: 0.95rem; padding: 0.5rem;">
+              Copy CSS cubic-bezier
+            </button>
+          </aside>
+
+          <!-- Main Workspace -->
+          <div class="tool-main" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Curve Graph & Interactive Playground -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start;">
+              
+              <!-- Curve Canvas -->
+              <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(30, 214, 91, 0.3); border-radius: 12px; padding: 1.2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                  <h4 style="color: var(--color-primary); margin: 0; font-family: var(--font-display); font-size: 1.1rem;">EASING CURVE GRAPH</h4>
+                  <span style="font-size: 0.8rem; color: var(--color-text-muted);">Drag points with mouse</span>
+                </div>
+
+                <div style="position: relative; width: 100%; height: 260px; background: #05070a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                  <canvas id="curveCanvas" width="300" height="260" style="width: 100%; height: 100%; cursor: crosshair;"></canvas>
+                </div>
+              </div>
+
+              <!-- Live Playground -->
+              <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                  <h4 style="color: #fff; margin: 0; font-family: var(--font-display); font-size: 1.1rem;">LIVE ANIMATION TEST</h4>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <select id="animTypeSelect" class="form-select" style="padding: 2px 8px; font-size: 0.8rem; width: auto;">
+                      <option value="slide">Slide X</option>
+                      <option value="scale" selected>Pop Scale</option>
+                      <option value="fall">Drop Y</option>
+                      <option value="rotate">Spin</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style="width: 100%; height: 260px; background: #05070a; background-image: linear-gradient(45deg, #141820 25%, transparent 25%), linear-gradient(-45deg, #141820 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #141820 75%), linear-gradient(-45deg, transparent 75%, #141820 75%); background-size: 16px 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+                  <div id="testObject" style="width: 80px; height: 80px; background: linear-gradient(135deg, #1ed65f, #00b341); border-radius: 20px; box-shadow: 0 10px 25px rgba(30, 214, 91, 0.4); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; cursor: pointer; user-select: none;">
+                    🪙
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Code Output -->
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                <h4 style="color: #fff; margin: 0; font-family: var(--font-display);">READY CODE FOR PLAYABLE AD:</h4>
+                <button id="btnCopySnippet" class="btn-cyber" style="padding: 4px 12px; font-size: 0.8rem;">Copy Code</button>
+              </div>
+              <textarea id="codeOutput" class="notranslate" translate="no" style="width: 100%; height: 180px; background: #080a0f; color: #a6e22e; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-family: monospace; font-size: 0.82rem; padding: 0.8rem; resize: vertical;" readonly></textarea>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const curveCanvas = document.getElementById('curveCanvas');
+    const ctx = curveCanvas.getContext('2d');
+    const durInput = document.getElementById('durInput');
+    const durVal = document.getElementById('durVal');
+    const bezierCoordsText = document.getElementById('bezierCoordsText');
+    const btnPlayAnim = document.getElementById('btnPlayAnim');
+    const btnCopyJsFunc = document.getElementById('btnCopyJsFunc');
+    const btnCopyCssBezier = document.getElementById('btnCopyCssBezier');
+    const btnCopySnippet = document.getElementById('btnCopySnippet');
+    const codeOutput = document.getElementById('codeOutput');
+    const testObject = document.getElementById('testObject');
+    const animTypeSelect = document.getElementById('animTypeSelect');
+
+    let p1 = { x: 0.34, y: 1.56 };
+    let p2 = { x: 0.64, y: 1.0 };
+    let activePreset = 'backOut';
+    let draggingPoint = null;
+    let animProgress = 1;
+    let animStartTime = null;
+
+    const presets = {
+      bounceOut: { p1: { x: 0.25, y: 1.0 }, p2: { x: 0.5, y: 1.0 }, funcName: 'easeBounceOut', type: 'math' },
+      elasticOut: { p1: { x: 0.2, y: 1.4 }, p2: { x: 0.4, y: 1.0 }, funcName: 'easeElasticOut', type: 'math' },
+      backOut: { p1: { x: 0.34, y: 1.56 }, p2: { x: 0.64, y: 1.0 }, funcName: 'easeBackOut', type: 'bezier' },
+      easeOutCubic: { p1: { x: 0.33, y: 1.0 }, p2: { x: 0.68, y: 1.0 }, funcName: 'easeOutCubic', type: 'bezier' },
+      easeInOutExpo: { p1: { x: 0.87, y: 0.0 }, p2: { x: 0.13, y: 1.0 }, funcName: 'easeInOutExpo', type: 'bezier' },
+      easeOutQuad: { p1: { x: 0.25, y: 0.46 }, p2: { x: 0.45, y: 0.94 }, funcName: 'easeOutQuad', type: 'bezier' },
+      anticipate: { p1: { x: 0.6, y: -0.28 }, p2: { x: 0.735, y: 0.045 }, funcName: 'easeAnticipate', type: 'bezier' },
+      linear: { p1: { x: 0.0, y: 0.0 }, p2: { x: 1.0, y: 1.0 }, funcName: 'easeLinear', type: 'bezier' }
+    };
+
+    // Math easing evaluations
+    function evaluateEase(t) {
+      if (activePreset === 'bounceOut') {
+        const n1 = 7.5625, d1 = 2.75;
+        if (t < 1 / d1) return n1 * t * t;
+        else if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75;
+        else if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375;
+        else return n1 * (t -= 2.625 / d1) * t + 0.984375;
+      } else if (activePreset === 'elasticOut') {
+        if (t === 0) return 0;
+        if (t === 1) return 1;
+        return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1;
+      } else {
+        // Cubic bezier evaluation approximation
+        const cy = 3 * p1.y;
+        const by = 3 * (p2.y - p1.y) - cy;
+        const ay = 1 - cy - by;
+        return ((ay * t + by) * t + cy) * t;
+      }
+    }
+
+    // Canvas rendering
+    function drawCurve() {
+      const w = curveCanvas.width;
+      const h = curveCanvas.height;
+      const pad = 40;
+      const plotW = w - pad * 2;
+      const plotH = h - pad * 2;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = pad + (plotH / 4) * i;
+        ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(pad + plotW, y); ctx.stroke();
+        const x = pad + (plotW / 4) * i;
+        ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, pad + plotH); ctx.stroke();
+      }
+
+      // Origin and target lines
+      ctx.strokeStyle = 'rgba(30, 214, 91, 0.2)';
+      ctx.beginPath();
+      ctx.moveTo(pad, pad + plotH);
+      ctx.lineTo(pad + plotW, pad);
+      ctx.stroke();
+
+      // Convert norm to canvas
+      const toCanvasX = (nx) => pad + nx * plotW;
+      const toCanvasY = (ny) => pad + plotH - ny * plotH;
+
+      // Draw Curve
+      ctx.strokeStyle = '#1ed65f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let i = 0; i <= 100; i++) {
+        const t = i / 100;
+        const val = evaluateEase(t);
+        const cx = toCanvasX(t);
+        const cy = toCanvasY(val);
+        if (i === 0) ctx.moveTo(cx, cy);
+        else ctx.lineTo(cx, cy);
+      }
+      ctx.stroke();
+
+      // Draw handles if bezier
+      if (presets[activePreset]?.type === 'bezier' || !presets[activePreset]) {
+        const p1x = toCanvasX(p1.x), p1y = toCanvasY(p1.y);
+        const p2x = toCanvasX(p2.x), p2y = toCanvasY(p2.y);
+        const startX = toCanvasX(0), startY = toCanvasY(0);
+        const endX = toCanvasX(1), endY = toCanvasY(1);
+
+        // Control lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(p1x, p1y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(endX, endY); ctx.lineTo(p2x, p2y); ctx.stroke();
+
+        // Control handles
+        ctx.fillStyle = '#00ffff';
+        ctx.beginPath(); ctx.arc(p1x, p1y, 6, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = '#ff0055';
+        ctx.beginPath(); ctx.arc(p2x, p2y, 6, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Draw animated progress point
+      if (animProgress >= 0 && animProgress <= 1) {
+        const ax = toCanvasX(animProgress);
+        const ay = toCanvasY(evaluateEase(animProgress));
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = '#1ed65f';
+        ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(ax, ay, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    // Dragging handles
+    curveCanvas.addEventListener('mousedown', (e) => {
+      const rect = curveCanvas.getBoundingClientRect();
+      const scaleX = curveCanvas.width / rect.width;
+      const scaleY = curveCanvas.height / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+
+      const pad = 40;
+      const plotW = curveCanvas.width - pad * 2;
+      const plotH = curveCanvas.height - pad * 2;
+      const toCanvasX = (nx) => pad + nx * plotW;
+      const toCanvasY = (ny) => pad + plotH - ny * plotH;
+
+      const dist1 = Math.hypot(mx - toCanvasX(p1.x), my - toCanvasY(p1.y));
+      const dist2 = Math.hypot(mx - toCanvasX(p2.x), my - toCanvasY(p2.y));
+
+      if (dist1 < 15) draggingPoint = 'p1';
+      else if (dist2 < 15) draggingPoint = 'p2';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!draggingPoint) return;
+      const rect = curveCanvas.getBoundingClientRect();
+      const scaleX = curveCanvas.width / rect.width;
+      const scaleY = curveCanvas.height / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+
+      const pad = 40;
+      const plotW = curveCanvas.width - pad * 2;
+      const plotH = curveCanvas.height - pad * 2;
+
+      const nx = Math.max(0, Math.min(1, (mx - pad) / plotW));
+      const ny = (pad + plotH - my) / plotH;
+
+      if (draggingPoint === 'p1') p1 = { x: Math.round(nx * 100)/100, y: Math.round(ny * 100)/100 };
+      if (draggingPoint === 'p2') p2 = { x: Math.round(nx * 100)/100, y: Math.round(ny * 100)/100 };
+
+      activePreset = 'custom';
+      document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+      bezierCoordsText.textContent = `[${p1.x}, ${p1.y}, ${p2.x}, ${p2.y}]`;
+      drawCurve();
+      updateCode();
+    });
+
+    window.addEventListener('mouseup', () => draggingPoint = null);
+
+    // Presets selection
+    document.querySelectorAll('.preset-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        const key = chip.dataset.preset;
+        activePreset = key;
+        const p = presets[key];
+        p1 = { ...p.p1 };
+        p2 = { ...p.p2 };
+        bezierCoordsText.textContent = `[${p1.x}, ${p1.y}, ${p2.x}, ${p2.y}]`;
+        drawCurve();
+        triggerAnimation();
+        updateCode();
+      });
+    });
+
+    durInput.addEventListener('input', () => {
+      durVal.textContent = durInput.value;
+      updateCode();
+    });
+
+    // Animation Loop
+    function triggerAnimation() {
+      animStartTime = performance.now();
+      animProgress = 0;
+      animate();
+    }
+
+    function animate(now = performance.now()) {
+      const durMs = parseFloat(durInput.value) * 1000;
+      const elapsed = now - animStartTime;
+      animProgress = Math.min(1, elapsed / durMs);
+      const easedVal = evaluateEase(animProgress);
+
+      const type = animTypeSelect.value;
+      if (type === 'scale') {
+        testObject.style.transform = `scale(${Math.max(0, easedVal)})`;
+      } else if (type === 'slide') {
+        const offset = (easedVal - 1) * 120;
+        testObject.style.transform = `translateX(${offset}px)`;
+      } else if (type === 'fall') {
+        const offset = (1 - easedVal) * -120;
+        testObject.style.transform = `translateY(${offset}px)`;
+      } else if (type === 'rotate') {
+        testObject.style.transform = `rotate(${easedVal * 360}deg) scale(${Math.min(1, easedVal)})`;
+      }
+
+      drawCurve();
+
+      if (animProgress < 1) {
+        requestAnimationFrame(animate);
+      }
+    }
+
+    btnPlayAnim.addEventListener('click', triggerAnimation);
+    testObject.addEventListener('click', triggerAnimation);
+    animTypeSelect.addEventListener('change', triggerAnimation);
+
+    // Code generator
+    function updateCode() {
+      const dur = durInput.value;
+      let jsFunc = '';
+      if (activePreset === 'bounceOut') {
+        jsFunc = `// 0 KB Bounce Out Easing Function\nfunction easeBounceOut(t) {\n  const n1 = 7.5625, d1 = 2.75;\n  if (t < 1 / d1) return n1 * t * t;\n  else if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75;\n  else if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375;\n  else return n1 * (t -= 2.625 / d1) * t + 0.984375;\n}`;
+      } else if (activePreset === 'elasticOut') {
+        jsFunc = `// 0 KB Elastic Out Easing Function\nfunction easeElasticOut(t) {\n  if (t === 0) return 0;\n  if (t === 1) return 1;\n  return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1;\n}`;
+      } else {
+        jsFunc = `// 0 KB Bézier Easing Function [${p1.x}, ${p1.y}, ${p2.x}, ${p2.y}]\nfunction ease(t) {\n  const cy = 3 * ${p1.y}, by = 3 * (${p2.y} - ${p1.y}) - cy, ay = 1 - cy - by;\n  return ((ay * t + by) * t + cy) * t;\n}`;
+      }
+
+      const cssCode = `/* CSS Transition with cubic-bezier */\n.animated-element {\n  transition: transform ${dur}s cubic-bezier(${p1.x}, ${p1.y}, ${p2.x}, ${p2.y});\n}`;
+      codeOutput.value = `${jsFunc}\n\n${cssCode}`;
+    }
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const old = btn.textContent;
+        btn.textContent = '✓ Скопировано!';
+        setTimeout(() => btn.textContent = old, 2000);
+      });
+    }
+
+    btnCopyJsFunc.addEventListener('click', () => {
+      const js = codeOutput.value.split('/* CSS')[0].trim();
+      copyToClipboard(js, btnCopyJsFunc);
+    });
+
+    btnCopyCssBezier.addEventListener('click', () => {
+      const css = `cubic-bezier(${p1.x}, ${p1.y}, ${p2.x}, ${p2.y})`;
+      copyToClipboard(css, btnCopyCssBezier);
+    });
+
+    btnCopySnippet.addEventListener('click', () => copyToClipboard(codeOutput.value, btnCopySnippet));
+
+    // Init
+    drawCurve();
+    updateCode();
+    triggerAnimation();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Match-3 & Grid Level Editor | xGR3ENx Tools</title>
+  
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="font/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/modern.css">
+  <link rel="stylesheet" href="css/tools.css">
+  <style>
+    .palette-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      color: #fff;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .palette-item:hover, .palette-item.active {
+      border-color: var(--color-primary);
+      background: rgba(30, 214, 91, 0.15);
+      color: var(--color-primary);
+      font-weight: 700;
+    }
+    .tool-btn-icon {
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .tool-btn-icon.active {
+      background: var(--color-primary);
+      color: #000;
+      border-color: var(--color-primary);
+      font-weight: 700;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header scrolled">
+    <div class="site-container">
+      <div class="nav-wrapper">
+        <a href="index_en.html" class="brand-logo-link" title="xGR3ENx Tools">
+          <img class="brand-logo-img" src="img/logo.svg" alt="xGR3ENx Logo" width="44" height="44">
+          <div class="brand-logo-text">
+            xGR3ENx
+            <span>TOOLS</span>
+          </div>
+        </a>
+        <ul class="nav-menu">
+          <li>
+            <div class="lang-switcher">
+              <button class="lang-btn" data-lang="ru" onclick="window.location.href='tilemap_en.html'">RU</button>
+              <button class="lang-btn active" data-lang="en" onclick="window.location.href='tilemap_en.html'">EN</button>
+            </div>
+          </li>
+          <li><a href="index_en.html" class="nav-item-link">HOME</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding-top: 100px;">
+    <section class="section-wrapper" style="padding-top: 2rem;">
+      <div class="site-container">
+        
+        <div class="tool-header">
+          <h1>MATCH-3 & GRID LEVEL EDITOR</h1>
+          <p>Visual level designer for Match-3, runners, mazes, and puzzles. Paint grid tiles, random fill, and export 2D JS matrices in 1 click.</p>
+        </div>
+
+        <div class="tool-layout">
+          <!-- Settings Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">PALETTE & GRID</h3>
+            
+            <!-- Game Type Preset -->
+            <div class="form-group">
+              <label class="form-label">Game Type / Palette</label>
+              <select id="gameTypeSelect" class="form-select">
+                <option value="match3" selected>🍬 Match-3 (Gems / Candies)</option>
+                <option value="dungeon">🏰 Dungeon / Maze (Labyrinth / Walls)</option>
+                <option value="runner">🏃 Runner / Lanes (Obstacles)</option>
+              </select>
+            </div>
+
+            <!-- Grid Dimensions -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Columns (W)</label>
+                <input type="number" id="colsInput" class="form-input" min="3" max="20" value="8">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Rows (H)</label>
+                <input type="number" id="rowsInput" class="form-input" min="3" max="20" value="8">
+              </div>
+            </div>
+
+            <!-- Palette Items Container -->
+            <div class="form-group">
+              <label class="form-label">Painting Tile</label>
+              <div id="paletteContainer" style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 220px; overflow-y: auto;"></div>
+            </div>
+
+            <!-- Tool buttons -->
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+              <button id="toolBrush" class="tool-btn-icon active" title="Кисть">✏️ Brush</button>
+              <button id="toolBucket" class="tool-btn-icon" title="Заливка">🪣 Bucket</button>
+              <button id="toolEraser" class="tool-btn-icon" title="Ластик">🧹 Eraser</button>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.8rem;">
+              <button id="btnRandomize" class="btn-cyber btn-cyber-outline" style="flex: 1; font-size: 0.8rem; padding: 0.4rem;">🎲 Random</button>
+              <button id="btnClearGrid" class="btn-cyber" style="flex: 1; font-size: 0.8rem; padding: 0.4rem; background: rgba(255,0,0,0.1); color: #ff5555; border: 1px solid rgba(255,0,0,0.2);">Clear</button>
+            </div>
+
+            <!-- Export Actions -->
+            <button id="btnCopyJsMatrix" class="btn-cyber btn-cyber-primary" style="width: 100%; margin-top: 1.5rem; font-size: 1rem; padding: 0.6rem;">
+              Copy JS Matrix [[...]]
+            </button>
+            <button id="btnDownloadJson" class="btn-cyber btn-cyber-outline" style="width: 100%; margin-top: 0.5rem; font-size: 0.85rem; padding: 0.4rem;">
+              Download level.json
+            </button>
+          </aside>
+
+          <!-- Main Workspace -->
+          <div class="tool-main" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Grid Canvas View -->
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(30, 214, 91, 0.3); border-radius: 12px; padding: 1.2rem; display: flex; flex-direction: column; align-items: center;">
+              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1rem;">
+                <h4 style="color: var(--color-primary); margin: 0; font-family: var(--font-display); letter-spacing: 1px;">LEVEL GRID</h4>
+                <div id="gridDimensionsText" style="font-family: monospace; font-size: 0.85rem; color: var(--color-text-muted);">8 × 8 (64 ячеек)</div>
+              </div>
+
+              <!-- Interactive Grid Canvas Container -->
+              <div style="width: 100%; min-height: 380px; background: #05070a; background-image: linear-gradient(45deg, #141820 25%, transparent 25%), linear-gradient(-45deg, #141820 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #141820 75%), linear-gradient(-45deg, transparent 75%, #141820 75%); background-size: 20px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); padding: 1.5rem; display: flex; align-items: center; justify-content: center; overflow: auto;">
+                <canvas id="gridCanvas" style="box-shadow: 0 0 30px rgba(0,0,0,0.8); cursor: pointer;"></canvas>
+              </div>
+            </div>
+
+            <!-- Code Output Accordion -->
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                <h4 style="color: #fff; margin: 0; font-family: var(--font-display);">READY LEVEL ARRAY:</h4>
+                <button id="btnCopySnippet" class="btn-cyber" style="padding: 4px 12px; font-size: 0.8rem;">Copy Code</button>
+              </div>
+              <textarea id="codeOutput" class="notranslate" translate="no" style="width: 100%; height: 180px; background: #080a0f; color: #a6e22e; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-family: monospace; font-size: 0.8rem; padding: 0.8rem; resize: vertical;" readonly></textarea>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const gridCanvas = document.getElementById('gridCanvas');
+    const ctx = gridCanvas.getContext('2d');
+    const colsInput = document.getElementById('colsInput');
+    const rowsInput = document.getElementById('rowsInput');
+    const gameTypeSelect = document.getElementById('gameTypeSelect');
+    const paletteContainer = document.getElementById('paletteContainer');
+    const gridDimensionsText = document.getElementById('gridDimensionsText');
+    const codeOutput = document.getElementById('codeOutput');
+
+    const toolBrush = document.getElementById('toolBrush');
+    const toolBucket = document.getElementById('toolBucket');
+    const toolEraser = document.getElementById('toolEraser');
+    const btnRandomize = document.getElementById('btnRandomize');
+    const btnClearGrid = document.getElementById('btnClearGrid');
+
+    const btnCopyJsMatrix = document.getElementById('btnCopyJsMatrix');
+    const btnDownloadJson = document.getElementById('btnDownloadJson');
+    const btnCopySnippet = document.getElementById('btnCopySnippet');
+
+    let activeTool = 'brush';
+    let selectedTileId = 1;
+    let isDrawing = false;
+
+    const palettes = {
+      match3: [
+        { id: 0, name: 'Пусто (Empty)', icon: '⬛', color: '#111' },
+        { id: 1, name: 'Красный рубин (Red)', icon: '💎', color: '#ff3344' },
+        { id: 2, name: 'Синий сапфир (Blue)', icon: '🔷', color: '#3388ff' },
+        { id: 3, name: 'Green изумруд (Green)', icon: '🟢', color: '#1ed65f' },
+        { id: 4, name: 'Желтый янтарь (Yellow)', icon: '⭐', color: '#ffcc00' },
+        { id: 5, name: 'Фиолетовый аметист (Purple)', icon: '🟣', color: '#aa33ff' },
+        { id: 6, name: 'Бомба / Бустер (Bomb)', icon: '💣', color: '#ff6600' },
+        { id: 7, name: 'Лед / Блокатор (Ice)', icon: '🧊', color: '#00ffff' }
+      ],
+      dungeon: [
+        { id: 0, name: 'Пол / Проход (Floor)', icon: '⬛', color: '#222' },
+        { id: 1, name: 'Стена (Wall)', icon: '🧱', color: '#888' },
+        { id: 2, name: 'Coin', icon: '🪙', color: '#ffcc00' },
+        { id: 3, name: 'Сундук (Chest)', icon: '📦', color: '#cc8833' },
+        { id: 4, name: 'Враг (Monster)', icon: '👾', color: '#ff3333' },
+        { id: 5, name: 'Дверь / Выход (Exit)', icon: '🚪', color: '#1ed65f' },
+        { id: 6, name: 'Игрок спавн (Player)', icon: '🦸', color: '#00ffff' }
+      ],
+      runner: [
+        { id: 0, name: 'Дорога (Road)', icon: '⬛', color: '#1a1a1a' },
+        { id: 1, name: 'Препятствие (Barrier)', icon: '🚧', color: '#ff3333' },
+        { id: 2, name: 'Coin', icon: '🪙', color: '#ffcc00' },
+        { id: 3, name: 'Бонус ускорения (Nitro)', icon: '⚡', color: '#00ffff' },
+        { id: 4, name: 'Прыжковый трамплин (Ramp)', icon: '🔺', color: '#1ed65f' }
+      ]
+    };
+
+    let currentGrid = [];
+
+    function initGrid() {
+      const cols = parseInt(colsInput.value) || 8;
+      const rows = parseInt(rowsInput.value) || 8;
+      currentGrid = [];
+      for (let r = 0; r < rows; r++) {
+        const row = [];
+        for (let c = 0; c < cols; c++) {
+          row.push(gameTypeSelect.value === 'match3' ? (Math.floor(Math.random() * 5) + 1) : 0);
+        }
+        currentGrid.push(row);
+      }
+      gridDimensionsText.textContent = `${cols} × ${rows} (${cols * rows} ячеек)`;
+      renderPalette();
+      drawGrid();
+      updateCodeOutput();
+    }
+
+    function renderPalette() {
+      const currentList = palettes[gameTypeSelect.value];
+      paletteContainer.innerHTML = '';
+      currentList.forEach(item => {
+        const div = document.createElement('div');
+        div.className = `palette-item ${item.id === selectedTileId ? 'active' : ''}`;
+        div.innerHTML = `<span style="font-size: 1.1rem;">${item.icon}</span> <span>${item.name}</span> <span style="margin-left: auto; font-family: monospace; color: #888;">ID:${item.id}</span>`;
+        div.addEventListener('click', () => {
+          selectedTileId = item.id;
+          document.querySelectorAll('.palette-item').forEach(p => p.classList.remove('active'));
+          div.classList.add('active');
+          if (activeTool === 'eraser') setTool('brush');
+        });
+        paletteContainer.appendChild(div);
+      });
+    }
+
+    function drawGrid() {
+      const rows = currentGrid.length;
+      if (!rows) return;
+      const cols = currentGrid[0].length;
+      const tileSize = 44;
+
+      gridCanvas.width = cols * tileSize;
+      gridCanvas.height = rows * tileSize;
+
+      const currentList = palettes[gameTypeSelect.value];
+      const paletteMap = {};
+      currentList.forEach(p => paletteMap[p.id] = p);
+
+      ctx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const id = currentGrid[r][c];
+          const item = paletteMap[id] || { icon: '❓', color: '#333' };
+          const x = c * tileSize;
+          const y = r * tileSize;
+
+          // Tile background
+          ctx.fillStyle = '#0a0d14';
+          ctx.fillRect(x, y, tileSize, tileSize);
+
+          // Inner rounded rect
+          ctx.fillStyle = item.id === 0 ? 'rgba(255,255,255,0.03)' : (item.color + '22');
+          ctx.strokeStyle = item.id === 0 ? 'rgba(255,255,255,0.1)' : item.color;
+          ctx.lineWidth = 1;
+
+          ctx.beginPath();
+          ctx.roundRect(x + 2, y + 2, tileSize - 4, tileSize - 4, 8);
+          ctx.fill();
+          ctx.stroke();
+
+          // Icon emoji
+          if (item.icon && item.id !== 0) {
+            ctx.font = '20px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(item.icon, x + tileSize / 2, y + tileSize / 2);
+          }
+        }
+      }
+    }
+
+    function setTool(tool) {
+      activeTool = tool;
+      [toolBrush, toolBucket, toolEraser].forEach(b => b.classList.remove('active'));
+      if (tool === 'brush') toolBrush.classList.add('active');
+      if (tool === 'bucket') toolBucket.classList.add('active');
+      if (tool === 'eraser') toolEraser.classList.add('active');
+    }
+
+    toolBrush.addEventListener('click', () => setTool('brush'));
+    toolBucket.addEventListener('click', () => setTool('bucket'));
+    toolEraser.addEventListener('click', () => setTool('eraser'));
+
+    function applyTileAt(mx, my) {
+      const tileSize = 44;
+      const c = Math.floor(mx / tileSize);
+      const r = Math.floor(my / tileSize);
+
+      if (r < 0 || r >= currentGrid.length || c < 0 || c >= currentGrid[0].length) return;
+
+      const targetVal = activeTool === 'eraser' ? 0 : selectedTileId;
+
+      if (activeTool === 'bucket') {
+        floodFill(r, c, currentGrid[r][c], targetVal);
+      } else {
+        currentGrid[r][c] = targetVal;
+      }
+
+      drawGrid();
+      updateCodeOutput();
+    }
+
+    function floodFill(sr, sc, oldVal, newVal) {
+      if (oldVal === newVal) return;
+      const rows = currentGrid.length;
+      const cols = currentGrid[0].length;
+      const queue = [[sr, sc]];
+
+      while (queue.length > 0) {
+        const [r, c] = queue.pop();
+        if (r < 0 || r >= rows || c < 0 || c >= cols) continue;
+        if (currentGrid[r][c] !== oldVal) continue;
+
+        currentGrid[r][c] = newVal;
+        queue.push([r + 1, c], [r - 1, c], [r, c + 1], [r, c - 1]);
+      }
+    }
+
+    gridCanvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      const rect = gridCanvas.getBoundingClientRect();
+      applyTileAt(e.clientX - rect.left, e.clientY - rect.top);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDrawing || activeTool === 'bucket') return;
+      const rect = gridCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      if (mx >= 0 && mx <= gridCanvas.width && my >= 0 && my <= gridCanvas.height) {
+        applyTileAt(mx, my);
+      }
+    });
+
+    window.addEventListener('mouseup', () => isDrawing = false);
+
+    btnRandomize.addEventListener('click', () => {
+      const currentList = palettes[gameTypeSelect.value].filter(p => p.id !== 0 && p.id < 6);
+      const rows = currentGrid.length;
+      const cols = currentGrid[0].length;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const randItem = currentList[Math.floor(Math.random() * currentList.length)];
+          currentGrid[r][c] = randItem.id;
+        }
+      }
+      drawGrid();
+      updateCodeOutput();
+    });
+
+    btnClearGrid.addEventListener('click', () => {
+      const rows = currentGrid.length;
+      const cols = currentGrid[0].length;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          currentGrid[r][c] = 0;
+        }
+      }
+      drawGrid();
+      updateCodeOutput();
+    });
+
+    colsInput.addEventListener('change', initGrid);
+    rowsInput.addEventListener('change', initGrid);
+    gameTypeSelect.addEventListener('change', () => {
+      selectedTileId = 1;
+      initGrid();
+    });
+
+    function updateCodeOutput() {
+      const jsonStr = JSON.stringify(currentGrid);
+      const rowsStr = currentGrid.map(row => '  [' + row.join(', ') + ']').join(',\n');
+      const code = `// 2D Game Level Matrix (${currentGrid[0]?.length}x${currentGrid.length})\nconst LEVEL_GRID = [\n${rowsStr}\n];\n\n// Fast Tile Lookup Helper\nfunction getTile(x, y) {\n  return (LEVEL_GRID[y] && LEVEL_GRID[y][x]) || 0;\n}`;
+      codeOutput.value = code;
+    }
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const old = btn.textContent;
+        btn.textContent = '✓ Скопировано!';
+        setTimeout(() => btn.textContent = old, 2000);
+      });
+    }
+
+    btnCopyJsMatrix.addEventListener('click', () => copyToClipboard(codeOutput.value, btnCopyJsMatrix));
+    btnCopySnippet.addEventListener('click', () => copyToClipboard(codeOutput.value, btnCopySnippet));
+
+    btnDownloadJson.addEventListener('click', () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+        type: gameTypeSelect.value,
+        width: currentGrid[0]?.length,
+        height: currentGrid.length,
+        grid: currentGrid
+      }, null, 2));
+      const a = document.createElement('a');
+      a.href = dataStr;
+      a.download = 'level_map.json';
+      a.click();
+    });
+
+    initGrid();
+  </script>
+
+</body>
+</html>

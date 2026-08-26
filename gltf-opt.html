@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>3D GLTF / GLB Viewer & Optimizer | xGR3ENx Tools</title>
+  
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="font/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/modern.css">
+  <link rel="stylesheet" href="css/tools.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <style>
+    .stat-badge {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 6px;
+      font-size: 0.82rem;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .stat-badge span:last-child {
+      color: var(--color-primary);
+      font-family: monospace;
+      font-weight: 700;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header scrolled">
+    <div class="site-container">
+      <div class="nav-wrapper">
+        <a href="index.html" class="brand-logo-link" title="xGR3ENx Tools">
+          <img class="brand-logo-img" src="img/logo.svg" alt="xGR3ENx Logo" width="44" height="44">
+          <div class="brand-logo-text">
+            xGR3ENx
+            <span>TOOLS</span>
+          </div>
+        </a>
+        <ul class="nav-menu">
+          <li>
+            <div class="lang-switcher">
+              <button class="lang-btn active" data-lang="ru" onclick="window.location.href='gltf-opt.html'">RU</button>
+              <button class="lang-btn" data-lang="en" onclick="window.location.href='gltf-opt_en.html'">EN</button>
+            </div>
+          </li>
+          <li><a href="index.html" class="nav-item-link">НА ГЛАВНУЮ</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding-top: 100px;">
+    <section class="section-wrapper" style="padding-top: 2rem;">
+      <div class="site-container">
+        
+        <div class="tool-header">
+          <h1>3D GLTF / GLB VIEWER & OPTIMIZER</h1>
+          <p>Инспектор и оптимизатор 3D моделей (GLTF, GLB) для Three.js и WebGL Playable Ads. Подсчет полигонов, проверка текстур, анимаций и генерация Base64 кода вставки.</p>
+        </div>
+
+        <div class="tool-layout">
+          <!-- Settings Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">3D МОДЕЛЬ</h3>
+            
+            <div id="dropzone" class="dropzone" style="min-height: 120px; padding: 1rem; border-width: 1px;">
+              <p style="font-size: 0.95rem;">Перетащите .GLB / .GLTF файл сюда</p>
+              <input type="file" id="gltfFileInput" accept=".glb,.gltf" style="display:none;">
+            </div>
+
+            <!-- Demo 3D Presets -->
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.8rem;">
+              <button id="btnDemoCoin" class="btn-cyber btn-cyber-outline" style="flex: 1; font-size: 0.75rem; padding: 4px;">🪙 3D Монета</button>
+              <button id="btnDemoBox" class="btn-cyber btn-cyber-outline" style="flex: 1; font-size: 0.75rem; padding: 4px;">📦 3D Сундук</button>
+            </div>
+
+            <!-- Viewport Settings -->
+            <div style="margin-top: 1.2rem; display: flex; flex-direction: column; gap: 0.6rem;">
+              <div class="form-check">
+                <input type="checkbox" id="checkWireframe">
+                <label for="checkWireframe">Сетка (Wireframe)</label>
+              </div>
+              <div class="form-check">
+                <input type="checkbox" id="checkAutoRotate" checked>
+                <label for="checkAutoRotate">Авто-вращение (Auto-Rotate)</label>
+              </div>
+              <div class="form-check">
+                <input type="checkbox" id="checkGrid" checked>
+                <label for="checkGrid">Сетка пола (Grid Floor)</label>
+              </div>
+            </div>
+
+            <!-- Lighting Environment -->
+            <div class="form-group" style="margin-top: 1rem;">
+              <label class="form-label">Освещение (Lighting)</label>
+              <select id="lightingSelect" class="form-select">
+                <option value="studio" selected>Студийное (Studio Green)</option>
+                <option value="cyber">Киберпанк (Cyber Neon)</option>
+                <option value="sunset">Закат (Warm Sunset)</option>
+                <option value="flat">Плоское (Flat Ambient)</option>
+              </select>
+            </div>
+
+            <!-- Model Statistics -->
+            <div style="margin-top: 1.2rem; padding: 0.8rem; background: rgba(0,0,0,0.4); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 0.4rem;">
+              <div style="font-weight: 700; color: var(--color-primary); font-size: 0.85rem; margin-bottom: 0.2rem;">СТАТИСТИКА МОДЕЛИ:</div>
+              <div class="stat-badge"><span>Размер файла:</span><span id="statSize">0 KB</span></div>
+              <div class="stat-badge"><span>Полигоны (Треугольники):</span><span id="statTriangles">0</span></div>
+              <div class="stat-badge"><span>Вершины (Vertices):</span><span id="statVertices">0</span></div>
+              <div class="stat-badge"><span>Меши (Meshes):</span><span id="statMeshes">0</span></div>
+              <div class="stat-badge"><span>Анимации (Tracks):</span><span id="statAnims">0</span></div>
+            </div>
+
+            <button id="btnCopyLoaderJs" class="btn-cyber btn-cyber-primary" style="width: 100%; margin-top: 1.2rem; font-size: 0.95rem; padding: 0.6rem;">
+              Скопировать Three.js код
+            </button>
+            <button id="btnCopyBase64" class="btn-cyber btn-cyber-outline" style="width: 100%; margin-top: 0.5rem; font-size: 0.85rem; padding: 0.4rem; display: none;">
+              Скопировать Base64 GLB
+            </button>
+          </aside>
+
+          <!-- Main Workspace -->
+          <div class="tool-main" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- 3D Canvas Viewport -->
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(30, 214, 91, 0.3); border-radius: 12px; padding: 1.2rem; display: flex; flex-direction: column;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                <h4 style="color: var(--color-primary); margin: 0; font-family: var(--font-display); letter-spacing: 1px;">ИНТЕРАКТИВНЫЙ 3D ВЬЮВЕР</h4>
+                <span style="font-size: 0.8rem; color: var(--color-text-muted);">ЛКМ - вращение, ПКМ - панорама, Колесо - зум</span>
+              </div>
+
+              <!-- WebGL Container -->
+              <div id="viewport3D" style="width: 100%; height: 420px; background: #05070a; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.05); cursor: grab;">
+                <div id="loadingOverlay" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(5,7,10,0.85); z-index: 10; display: flex; align-items: center; justify-content: center; color: var(--color-primary); font-family: monospace;">Загрузка 3D модели...</div>
+              </div>
+            </div>
+
+            <!-- Code Output Accordion -->
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                <h4 style="color: #fff; margin: 0; font-family: var(--font-display);">ГОТОВЫЙ КОД ЗАГРУЗКИ ДЛЯ THREE.JS:</h4>
+                <button id="btnCopySnippet" class="btn-cyber" style="padding: 4px 12px; font-size: 0.8rem;">Скопировать код</button>
+              </div>
+              <textarea id="codeOutput" class="notranslate" translate="no" style="width: 100%; height: 160px; background: #080a0f; color: #a6e22e; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-family: monospace; font-size: 0.8rem; padding: 0.8rem; resize: vertical;" readonly></textarea>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const gltfFileInput = document.getElementById('gltfFileInput');
+    const viewport3D = document.getElementById('viewport3D');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+
+    const checkWireframe = document.getElementById('checkWireframe');
+    const checkAutoRotate = document.getElementById('checkAutoRotate');
+    const checkGrid = document.getElementById('checkGrid');
+    const lightingSelect = document.getElementById('lightingSelect');
+
+    const statSize = document.getElementById('statSize');
+    const statTriangles = document.getElementById('statTriangles');
+    const statVertices = document.getElementById('statVertices');
+    const statMeshes = document.getElementById('statMeshes');
+    const statAnims = document.getElementById('statAnims');
+
+    const btnDemoCoin = document.getElementById('btnDemoCoin');
+    const btnDemoBox = document.getElementById('btnDemoBox');
+    const btnCopyLoaderJs = document.getElementById('btnCopyLoaderJs');
+    const btnCopyBase64 = document.getElementById('btnCopyBase64');
+    const btnCopySnippet = document.getElementById('btnCopySnippet');
+    const codeOutput = document.getElementById('codeOutput');
+
+    let currentModelBase64 = null;
+
+    // Three.js Scene Setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x05070a);
+
+    const camera = new THREE.PerspectiveCamera(45, viewport3D.clientWidth / viewport3D.clientHeight, 0.1, 100);
+    camera.position.set(0, 1.5, 3.5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(viewport3D.clientWidth, viewport3D.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    viewport3D.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 2.0;
+
+    // Grid Floor
+    const gridHelper = new THREE.GridHelper(10, 20, 0x1ed65f, 0x182030);
+    gridHelper.position.y = -0.01;
+    scene.add(gridHelper);
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0x1ed65f, 1.2);
+    dirLight1.position.set(3, 5, 3);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0x00ffff, 0.8);
+    dirLight2.position.set(-3, 3, -3);
+    scene.add(dirLight2);
+
+    let currentMeshGroup = new THREE.Group();
+    scene.add(currentMeshGroup);
+
+    // Resize Handler
+    window.addEventListener('resize', () => {
+      if (!viewport3D) return;
+      camera.aspect = viewport3D.clientWidth / viewport3D.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(viewport3D.clientWidth, viewport3D.clientHeight);
+    });
+
+    // Animation Loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.autoRotate = checkAutoRotate.checked;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Lighting change
+    lightingSelect.addEventListener('change', () => {
+      const mode = lightingSelect.value;
+      if (mode === 'studio') {
+        dirLight1.color.set(0x1ed65f);
+        dirLight2.color.set(0xffffff);
+        ambientLight.color.set(0xffffff);
+        ambientLight.intensity = 0.8;
+      } else if (mode === 'cyber') {
+        dirLight1.color.set(0xff0055);
+        dirLight2.color.set(0x00ffff);
+        ambientLight.color.set(0x221133);
+        ambientLight.intensity = 0.6;
+      } else if (mode === 'sunset') {
+        dirLight1.color.set(0xff8833);
+        dirLight2.color.set(0x8833ff);
+        ambientLight.color.set(0xffeecc);
+        ambientLight.intensity = 0.7;
+      } else {
+        dirLight1.color.set(0xffffff);
+        dirLight2.color.set(0xffffff);
+        ambientLight.color.set(0xffffff);
+        ambientLight.intensity = 1.2;
+      }
+    });
+
+    checkWireframe.addEventListener('change', () => {
+      currentMeshGroup.traverse(child => {
+        if (child.isMesh && child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach(m => m.wireframe = checkWireframe.checked);
+          } else {
+            child.material.wireframe = checkWireframe.checked;
+          }
+        }
+      });
+    });
+
+    checkGrid.addEventListener('change', () => {
+      gridHelper.visible = checkGrid.checked;
+    });
+
+    // Model Inspection & Stats
+    function updateStats(object3d, fileSize = 'N/A') {
+      let triangles = 0;
+      let vertices = 0;
+      let meshes = 0;
+
+      object3d.traverse(child => {
+        if (child.isMesh) {
+          meshes++;
+          const geom = child.geometry;
+          if (geom) {
+            if (geom.index) {
+              triangles += geom.index.count / 3;
+            } else if (geom.attributes.position) {
+              triangles += geom.attributes.position.count / 3;
+            }
+            if (geom.attributes.position) {
+              vertices += geom.attributes.position.count;
+            }
+          }
+        }
+      });
+
+      statSize.textContent = fileSize;
+      statTriangles.textContent = triangles.toLocaleString();
+      statVertices.textContent = vertices.toLocaleString();
+      statMeshes.textContent = meshes.toString();
+      statAnims.textContent = '0';
+
+      updateCodeOutput();
+    }
+
+    function fitCameraToObject(object) {
+      const box = new THREE.Box3().setFromObject(object);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const fov = camera.fov * (Math.PI / 180);
+      let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.6;
+
+      camera.position.set(center.x, center.y + size.y * 0.3, center.z + cameraZ);
+      camera.lookAt(center);
+      controls.target.copy(center);
+    }
+
+    // Demo models
+    function createDemoCoin() {
+      while(currentMeshGroup.children.length > 0){ currentMeshGroup.remove(currentMeshGroup.children[0]); }
+      
+      const geom = new THREE.CylinderGeometry(1, 1, 0.2, 32);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xffcc00,
+        metalness: 0.85,
+        roughness: 0.2,
+        wireframe: checkWireframe.checked
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.rotation.x = Math.PI / 2;
+      mesh.position.y = 0.5;
+      currentMeshGroup.add(mesh);
+      updateStats(currentMeshGroup, 'Procedural 3D');
+      fitCameraToObject(currentMeshGroup);
+    }
+
+    function createDemoBox() {
+      while(currentMeshGroup.children.length > 0){ currentMeshGroup.remove(currentMeshGroup.children[0]); }
+      
+      const geom = new THREE.BoxGeometry(1.2, 1.0, 1.0);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x1ed65f,
+        metalness: 0.3,
+        roughness: 0.4,
+        wireframe: checkWireframe.checked
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.y = 0.5;
+      currentMeshGroup.add(mesh);
+      updateStats(currentMeshGroup, 'Procedural 3D');
+      fitCameraToObject(currentMeshGroup);
+    }
+
+    btnDemoCoin.addEventListener('click', createDemoCoin);
+    btnDemoBox.addEventListener('click', createDemoBox);
+
+    // File Drop & Load
+    dropzone.addEventListener('click', () => gltfFileInput.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) loadGLTFFile(e.dataTransfer.files[0]);
+    });
+    gltfFileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) loadGLTFFile(e.target.files[0]);
+    });
+
+    function loadGLTFFile(file) {
+      loadingOverlay.style.display = 'flex';
+      const sizeStr = (file.size / 1024).toFixed(1) + ' KB';
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const arrayBuffer = e.target.result;
+        currentModelBase64 = arrayBuffer;
+        btnCopyBase64.style.display = 'block';
+
+        const loader = new THREE.GLTFLoader();
+        loader.parse(arrayBuffer, '', (gltf) => {
+          loadingOverlay.style.display = 'none';
+          while(currentMeshGroup.children.length > 0){ currentMeshGroup.remove(currentMeshGroup.children[0]); }
+          
+          const model = gltf.scene || gltf.scenes[0];
+          currentMeshGroup.add(model);
+          updateStats(model, sizeStr);
+          fitCameraToObject(model);
+        }, (err) => {
+          loadingOverlay.style.display = 'none';
+          alert('Ошибка при разборе 3D модели: ' + err.message);
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function updateCodeOutput() {
+      const code = `// Three.js GLTF Loader for Playable Ads
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+const loader = new GLTFLoader();
+
+// Load from URL or Base64 Data URI
+loader.load('model.glb', (gltf) => {
+  const model = gltf.scene;
+  model.position.set(0, 0, 0);
+  scene.add(model);
+}, undefined, (err) => {
+  console.error('3D Model loading error:', err);
+});`;
+      codeOutput.value = code;
+    }
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const old = btn.textContent;
+        btn.textContent = '✓ Скопировано!';
+        setTimeout(() => btn.textContent = old, 2000);
+      });
+    }
+
+    btnCopyLoaderJs.addEventListener('click', () => copyToClipboard(codeOutput.value, btnCopyLoaderJs));
+    btnCopySnippet.addEventListener('click', () => copyToClipboard(codeOutput.value, btnCopySnippet));
+
+    btnCopyBase64.addEventListener('click', () => {
+      if (!currentModelBase64) return;
+      let binary = '';
+      const bytes = new Uint8Array(currentModelBase64);
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = 'data:model/gltf-binary;base64,' + window.btoa(binary);
+      copyToClipboard(base64, btnCopyBase64);
+    });
+
+    createDemoCoin();
+  </script>
+
+</body>
+</html>
