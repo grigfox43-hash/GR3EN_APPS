@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <title>3D GLTF / GLB Viewer & Optimizer | xGR3ENx Tools</title>
+  <title>3D Model Viewer & Optimizer (GLTF, GLB, OBJ, FBX, STL) | xGR3ENx Tools</title>
   
   <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="stylesheet" href="font/stylesheet.css">
@@ -13,9 +13,18 @@
   
   <link rel="stylesheet" href="css/modern.css">
   <link rel="stylesheet" href="css/tools.css">
+  
+  <!-- Three.js Core & Loaders -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.0/umd/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/PLYLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/ColladaLoader.js"></script>
+
   <style>
     .stat-badge {
       display: flex;
@@ -28,6 +37,16 @@
       border: 1px solid rgba(255,255,255,0.05);
     }
     .stat-badge span:last-child {
+      color: var(--color-primary);
+      font-family: monospace;
+      font-weight: 700;
+    }
+    .format-chip {
+      padding: 3px 8px;
+      background: rgba(30, 214, 91, 0.1);
+      border: 1px solid rgba(30, 214, 91, 0.3);
+      border-radius: 4px;
+      font-size: 0.75rem;
       color: var(--color-primary);
       font-family: monospace;
       font-weight: 700;
@@ -65,18 +84,28 @@
       <div class="site-container">
         
         <div class="tool-header">
-          <h1>3D GLTF / GLB VIEWER & OPTIMIZER</h1>
-          <p>Inspector and optimizer for 3D models (GLTF, GLB) for Three.js and WebGL Playables. Polycount inspection, texture checks, animations, and Base64 embed generator.</p>
+          <h1>3D MODEL VIEWER & OPTIMIZER</h1>
+          <p>Inspector for 3D models across all popular formats (GLB, GLTF, OBJ, FBX, STL, PLY, DAE) for Three.js and WebGL Playables. Polycount inspection, animation checks, materials, and embed generator.</p>
         </div>
 
         <div class="tool-layout">
           <!-- Settings Sidebar -->
           <aside class="tool-sidebar">
-            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">3D MODEL</h3>
+            <h3 style="margin-bottom: 1rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">3D MODEL</h3>
             
+            <div style="display: flex; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 1rem;">
+              <span class="format-chip">.GLB</span>
+              <span class="format-chip">.GLTF</span>
+              <span class="format-chip">.OBJ</span>
+              <span class="format-chip">.FBX</span>
+              <span class="format-chip">.STL</span>
+              <span class="format-chip">.PLY</span>
+              <span class="format-chip">.DAE</span>
+            </div>
+
             <div id="dropzone" class="dropzone" style="min-height: 120px; padding: 1rem; border-width: 1px;">
-              <p style="font-size: 0.95rem;">Drop .GLB / .GLTF file here</p>
-              <input type="file" id="gltfFileInput" accept=".glb,.gltf" style="display:none;">
+              <p style="font-size: 0.9rem;">Drop 3D file here<br><span style="font-size: 0.75rem; color: var(--color-text-muted);">(GLB, GLTF, OBJ, FBX, STL, PLY, DAE)</span></p>
+              <input type="file" id="gltfFileInput" accept=".glb,.gltf,.obj,.fbx,.stl,.ply,.dae" style="display:none;">
             </div>
 
             <!-- Demo 3D Presets -->
@@ -115,6 +144,7 @@
             <!-- Model Statistics -->
             <div style="margin-top: 1.2rem; padding: 0.8rem; background: rgba(0,0,0,0.4); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 0.4rem;">
               <div style="font-weight: 700; color: var(--color-primary); font-size: 0.85rem; margin-bottom: 0.2rem;">MODEL STATISTICS:</div>
+              <div class="stat-badge"><span>Format:</span><span id="statFormat">Procedural</span></div>
               <div class="stat-badge"><span>File Size:</span><span id="statSize">0 KB</span></div>
               <div class="stat-badge"><span>Polygons (Triangles):</span><span id="statTriangles">0</span></div>
               <div class="stat-badge"><span>Vertices:</span><span id="statVertices">0</span></div>
@@ -126,7 +156,7 @@
               Copy Three.js Code
             </button>
             <button id="btnCopyBase64" class="btn-cyber btn-cyber-outline" style="width: 100%; margin-top: 0.5rem; font-size: 0.85rem; padding: 0.4rem; display: none;">
-              Copy Base64 GLB
+              Copy Base64 Data URI
             </button>
           </aside>
 
@@ -173,6 +203,7 @@
     const checkGrid = document.getElementById('checkGrid');
     const lightingSelect = document.getElementById('lightingSelect');
 
+    const statFormat = document.getElementById('statFormat');
     const statSize = document.getElementById('statSize');
     const statTriangles = document.getElementById('statTriangles');
     const statVertices = document.getElementById('statVertices');
@@ -187,12 +218,15 @@
     const codeOutput = document.getElementById('codeOutput');
 
     let currentModelBase64 = null;
+    let currentModelFormat = 'GLB';
+    let mixer = null;
+    let clock = new THREE.Clock();
 
     // Three.js Scene Setup
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x05070a);
 
-    const camera = new THREE.PerspectiveCamera(45, viewport3D.clientWidth / viewport3D.clientHeight, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(45, viewport3D.clientWidth / viewport3D.clientHeight, 0.1, 1000);
     camera.position.set(0, 1.5, 3.5);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -239,6 +273,8 @@
     // Animation Loop
     function animate() {
       requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      if (mixer) mixer.update(delta);
       controls.autoRotate = checkAutoRotate.checked;
       controls.update();
       renderer.render(scene, camera);
@@ -288,7 +324,7 @@
     });
 
     // Model Inspection & Stats
-    function updateStats(object3d, fileSize = 'N/A') {
+    function updateStats(object3d, fileSize = 'N/A', formatName = 'GLB', animsCount = 0) {
       let triangles = 0;
       let vertices = 0;
       let meshes = 0;
@@ -310,11 +346,12 @@
         }
       });
 
+      statFormat.textContent = formatName.toUpperCase();
       statSize.textContent = fileSize;
       statTriangles.textContent = triangles.toLocaleString();
       statVertices.textContent = vertices.toLocaleString();
       statMeshes.textContent = meshes.toString();
-      statAnims.textContent = '0';
+      statAnims.textContent = animsCount.toString();
 
       updateCodeOutput();
     }
@@ -324,9 +361,9 @@
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
 
-      const maxDim = Math.max(size.x, size.y, size.z);
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
       const fov = camera.fov * (Math.PI / 180);
-      let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.6;
+      let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.8;
 
       camera.position.set(center.x, center.y + size.y * 0.3, center.z + cameraZ);
       camera.lookAt(center);
@@ -336,6 +373,8 @@
     // Demo models
     function createDemoCoin() {
       while(currentMeshGroup.children.length > 0){ currentMeshGroup.remove(currentMeshGroup.children[0]); }
+      mixer = null;
+      currentModelFormat = 'GLB';
       
       const geom = new THREE.CylinderGeometry(1, 1, 0.2, 32);
       const mat = new THREE.MeshStandardMaterial({
@@ -348,12 +387,14 @@
       mesh.rotation.x = Math.PI / 2;
       mesh.position.y = 0.5;
       currentMeshGroup.add(mesh);
-      updateStats(currentMeshGroup, 'Procedural 3D');
+      updateStats(currentMeshGroup, 'Procedural 3D', 'Procedural');
       fitCameraToObject(currentMeshGroup);
     }
 
     function createDemoBox() {
       while(currentMeshGroup.children.length > 0){ currentMeshGroup.remove(currentMeshGroup.children[0]); }
+      mixer = null;
+      currentModelFormat = 'GLB';
       
       const geom = new THREE.BoxGeometry(1.2, 1.0, 1.0);
       const mat = new THREE.MeshStandardMaterial({
@@ -365,68 +406,159 @@
       const mesh = new THREE.Mesh(geom, mat);
       mesh.position.y = 0.5;
       currentMeshGroup.add(mesh);
-      updateStats(currentMeshGroup, 'Procedural 3D');
+      updateStats(currentMeshGroup, 'Procedural 3D', 'Procedural');
       fitCameraToObject(currentMeshGroup);
     }
 
     btnDemoCoin.addEventListener('click', createDemoCoin);
     btnDemoBox.addEventListener('click', createDemoBox);
 
-    // File Drop & Load
+    // Multi-format File Drop & Load
     dropzone.addEventListener('click', () => gltfFileInput.click());
     dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
     dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
     dropzone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropzone.classList.remove('dragover');
-      if (e.dataTransfer.files.length) loadGLTFFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files.length) load3DFile(e.dataTransfer.files[0]);
     });
     gltfFileInput.addEventListener('change', (e) => {
-      if (e.target.files.length) loadGLTFFile(e.target.files[0]);
+      if (e.target.files.length) load3DFile(e.target.files[0]);
     });
 
-    function loadGLTFFile(file) {
+    function load3DFile(file) {
       loadingOverlay.style.display = 'flex';
       const sizeStr = (file.size / 1024).toFixed(1) + ' KB';
+      const ext = file.name.split('.').pop().toLowerCase();
+      currentModelFormat = ext;
 
       const reader = new FileReader();
-      reader.onload = (e) => {
-        const arrayBuffer = e.target.result;
-        currentModelBase64 = arrayBuffer;
-        btnCopyBase64.style.display = 'block';
 
-        const loader = new THREE.GLTFLoader();
-        loader.parse(arrayBuffer, '', (gltf) => {
-          loadingOverlay.style.display = 'none';
-          while(currentMeshGroup.children.length > 0){ currentMeshGroup.remove(currentMeshGroup.children[0]); }
-          
-          const model = gltf.scene || gltf.scenes[0];
-          currentMeshGroup.add(model);
-          updateStats(model, sizeStr);
-          fitCameraToObject(model);
-        }, (err) => {
-          loadingOverlay.style.display = 'none';
-          alert('Ошибка при разборе 3D модели: ' + err.message);
+      if (ext === 'glb' || ext === 'gltf') {
+        reader.onload = (e) => {
+          const arrayBuffer = e.target.result;
+          currentModelBase64 = arrayBuffer;
+          btnCopyBase64.style.display = 'block';
+
+          const loader = new THREE.GLTFLoader();
+          loader.parse(arrayBuffer, '', (gltf) => {
+            onModelLoaded(gltf.scene || gltf.scenes[0], sizeStr, ext, gltf.animations);
+          }, (err) => onLoadError(err));
+        };
+        reader.readAsArrayBuffer(file);
+      } else if (ext === 'obj') {
+        reader.onload = (e) => {
+          const text = e.target.result;
+          currentModelBase64 = text;
+          btnCopyBase64.style.display = 'block';
+
+          const loader = new THREE.OBJLoader();
+          const obj = loader.parse(text);
+          // Apply default material if none
+          obj.traverse(child => {
+            if (child.isMesh && !child.material) {
+              child.material = new THREE.MeshStandardMaterial({ color: 0x1ed65f, metalness: 0.2, roughness: 0.5 });
+            }
+          });
+          onModelLoaded(obj, sizeStr, ext);
+        };
+        reader.readAsText(file);
+      } else if (ext === 'fbx') {
+        reader.onload = (e) => {
+          const arrayBuffer = e.target.result;
+          currentModelBase64 = arrayBuffer;
+          btnCopyBase64.style.display = 'block';
+
+          const loader = new THREE.FBXLoader();
+          const fbx = loader.parse(arrayBuffer, '');
+          onModelLoaded(fbx, sizeStr, ext, fbx.animations);
+        };
+        reader.readAsArrayBuffer(file);
+      } else if (ext === 'stl') {
+        reader.onload = (e) => {
+          const arrayBuffer = e.target.result;
+          currentModelBase64 = arrayBuffer;
+          btnCopyBase64.style.display = 'block';
+
+          const loader = new THREE.STLLoader();
+          const geometry = loader.parse(arrayBuffer);
+          const material = new THREE.MeshStandardMaterial({ color: 0x1ed65f, metalness: 0.3, roughness: 0.4 });
+          const mesh = new THREE.Mesh(geometry, material);
+          const group = new THREE.Group();
+          group.add(mesh);
+          onModelLoaded(group, sizeStr, ext);
+        };
+        reader.readAsArrayBuffer(file);
+      } else if (ext === 'ply') {
+        reader.onload = (e) => {
+          const arrayBuffer = e.target.result;
+          currentModelBase64 = arrayBuffer;
+          btnCopyBase64.style.display = 'block';
+
+          const loader = new THREE.PLYLoader();
+          const geometry = loader.parse(arrayBuffer);
+          const material = new THREE.MeshStandardMaterial({ color: 0x00ffff, metalness: 0.2, roughness: 0.5 });
+          const mesh = new THREE.Mesh(geometry, material);
+          const group = new THREE.Group();
+          group.add(mesh);
+          onModelLoaded(group, sizeStr, ext);
+        };
+        reader.readAsArrayBuffer(file);
+      } else if (ext === 'dae') {
+        reader.onload = (e) => {
+          const text = e.target.result;
+          currentModelBase64 = text;
+          btnCopyBase64.style.display = 'block';
+
+          const loader = new THREE.ColladaLoader();
+          const collada = loader.parse(text, '');
+          onModelLoaded(collada.scene, sizeStr, ext, collada.animations);
+        };
+        reader.readAsText(file);
+      } else {
+        loadingOverlay.style.display = 'none';
+        alert(`Формат .${ext} не поддерживается. Поддерживаются: GLB, GLTF, OBJ, FBX, STL, PLY, DAE`);
+      }
+    }
+
+    function onModelLoaded(model, sizeStr, ext, animations = []) {
+      loadingOverlay.style.display = 'none';
+      while(currentMeshGroup.children.length > 0){ currentMeshGroup.remove(currentMeshGroup.children[0]); }
+      
+      currentMeshGroup.add(model);
+
+      // Handle animations
+      if (animations && animations.length > 0) {
+        mixer = new THREE.AnimationMixer(model);
+        animations.forEach(clip => {
+          mixer.clipAction(clip).play();
         });
-      };
-      reader.readAsArrayBuffer(file);
+      } else {
+        mixer = null;
+      }
+
+      updateStats(model, sizeStr, ext, animations ? animations.length : 0);
+      fitCameraToObject(model);
+    }
+
+    function onLoadError(err) {
+      loadingOverlay.style.display = 'none';
+      alert('Ошибка при разборе 3D модели: ' + (err.message || err));
     }
 
     function updateCodeOutput() {
-      const code = `// Three.js GLTF Loader for Playable Ads
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+      let code = '';
+      const fmt = currentModelFormat.toLowerCase();
 
-const loader = new GLTFLoader();
-
-// Load from URL or Base64 Data URI
-loader.load('model.glb', (gltf) => {
-  const model = gltf.scene;
-  model.position.set(0, 0, 0);
-  scene.add(model);
-}, undefined, (err) => {
-  console.error('3D Model loading error:', err);
-});`;
+      if (fmt === 'obj') {
+        code = `// Three.js OBJ Loader for Playable Ads\nimport * as THREE from 'three';\nimport { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';\n\nconst loader = new OBJLoader();\nloader.load('model.obj', (obj) => {\n  obj.position.set(0, 0, 0);\n  scene.add(obj);\n});`;
+      } else if (fmt === 'fbx') {
+        code = `// Three.js FBX Loader for Playable Ads\nimport * as THREE from 'three';\nimport { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';\n\nconst loader = new FBXLoader();\nloader.load('model.fbx', (fbx) => {\n  scene.add(fbx);\n});`;
+      } else if (fmt === 'stl') {
+        code = `// Three.js STL Loader for Playable Ads\nimport * as THREE from 'three';\nimport { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';\n\nconst loader = new STLLoader();\nloader.load('model.stl', (geometry) => {\n  const material = new THREE.MeshStandardMaterial({ color: 0x1ed65f });\n  const mesh = new THREE.Mesh(geometry, material);\n  scene.add(mesh);\n});`;
+      } else {
+        code = `// Three.js GLTF/GLB Loader for Playable Ads\nimport * as THREE from 'three';\nimport { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';\n\nconst loader = new GLTFLoader();\nloader.load('model.glb', (gltf) => {\n  const model = gltf.scene;\n  model.position.set(0, 0, 0);\n  scene.add(model);\n});`;
+      }
       codeOutput.value = code;
     }
 
@@ -443,12 +575,17 @@ loader.load('model.glb', (gltf) => {
 
     btnCopyBase64.addEventListener('click', () => {
       if (!currentModelBase64) return;
-      let binary = '';
-      const bytes = new Uint8Array(currentModelBase64);
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
+      let base64 = '';
+      if (typeof currentModelBase64 === 'string') {
+        base64 = `data:text/plain;base64,` + window.btoa(currentModelBase64);
+      } else {
+        let binary = '';
+        const bytes = new Uint8Array(currentModelBase64);
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        base64 = 'data:application/octet-stream;base64,' + window.btoa(binary);
       }
-      const base64 = 'data:model/gltf-binary;base64,' + window.btoa(binary);
       copyToClipboard(base64, btnCopyBase64);
     });
 
