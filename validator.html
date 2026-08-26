@@ -147,64 +147,77 @@
               </div>
 
               <!-- 2. Responsive Matrix View (iPhone XR & Pixel 7 Portrait/Landscape) -->
-              <div id="matrixView" style="display: none; width: 100%; max-width: 1280px;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; justify-items: center; align-items: start;">
-                  
-                  <!-- Screen 1: iPhone XR Portrait -->
-                  <div style="display: flex; flex-direction: column; align-items: center;">
-                    <div style="color: var(--color-primary); font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; font-family: monospace; letter-spacing: 0.5px;">🍎 iPhone XR Portrait (414 × 896)</div>
-                    <div style="background: #000; padding: 10px; border-radius: 38px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 0 2px rgba(30, 214, 91, 0.2), inset 0 0 0 1px rgba(255,255,255,0.1);">
-                      <!-- iPhone XR Notch -->
-                      <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 110px; height: 18px; background: #000; border-radius: 0 0 14px 14px; z-index: 10; box-shadow: inset 0 -1px 3px rgba(255,255,255,0.05);"></div>
-                      <div style="width: 250px; height: 541px; border-radius: 28px; overflow: hidden; background: #111; position: relative;">
-                        <iframe id="matrixIframe1" style="width: 414px; height: 896px; transform: scale(0.60386); transform-origin: top left; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+              <div id="matrixView" style="display: none; width: 100%; max-width: 1100px;">
+                
+                <!-- Section 1: Portrait Screens (iPhone XR & Pixel 7) -->
+                <div style="margin-bottom: 2.5rem; width: 100%;">
+                  <div style="display: flex; gap: 2.5rem; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
+                    
+                    <!-- Screen 1: iPhone XR Portrait -->
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                      <div style="color: var(--color-primary); font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; font-family: monospace; letter-spacing: 0.5px;">🍎 iPhone XR Portrait (414 × 896)</div>
+                      <div style="background: #000; padding: 10px; border-radius: 38px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 0 2px rgba(30, 214, 91, 0.2), inset 0 0 0 1px rgba(255,255,255,0.1);">
+                        <!-- iPhone XR Notch -->
+                        <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 110px; height: 18px; background: #000; border-radius: 0 0 14px 14px; z-index: 10; box-shadow: inset 0 -1px 3px rgba(255,255,255,0.05);"></div>
+                        <div style="width: 250px; height: 541px; border-radius: 28px; overflow: hidden; background: #111; position: relative;">
+                          <iframe id="matrixIframe1" style="width: 414px; height: 896px; transform: scale(0.60386); transform-origin: top left; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <!-- Screen 2: Google Pixel 7 Portrait -->
-                  <div style="display: flex; flex-direction: column; align-items: center;">
-                    <div style="color: var(--color-primary); font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; font-family: monospace; letter-spacing: 0.5px;">🤖 Pixel 7 Portrait (412 × 915)</div>
-                    <div style="background: #000; padding: 10px; border-radius: 38px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 0 2px rgba(30, 214, 91, 0.2), inset 0 0 0 1px rgba(255,255,255,0.1);">
-                      <!-- Pixel 7 Punch-hole Camera -->
-                      <div style="position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; background: #000; border-radius: 50%; z-index: 10; box-shadow: inset 0 0 2px rgba(255,255,255,0.1);"></div>
-                      <div style="width: 250px; height: 555px; border-radius: 28px; overflow: hidden; background: #111; position: relative;">
-                        <iframe id="matrixIframe3" style="width: 412px; height: 915px; transform: scale(0.6068); transform-origin: top left; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+                    <!-- Screen 2: Google Pixel 7 Portrait -->
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                      <div style="color: var(--color-primary); font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; font-family: monospace; letter-spacing: 0.5px;">🤖 Pixel 7 Portrait (412 × 915)</div>
+                      <div style="background: #000; padding: 10px; border-radius: 38px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 0 2px rgba(30, 214, 91, 0.2), inset 0 0 0 1px rgba(255,255,255,0.1);">
+                        <!-- Pixel 7 Punch-hole Camera -->
+                        <div style="position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; background: #000; border-radius: 50%; z-index: 10; box-shadow: inset 0 0 2px rgba(255,255,255,0.1);"></div>
+                        <div style="width: 250px; height: 555px; border-radius: 28px; overflow: hidden; background: #111; position: relative;">
+                          <iframe id="matrixIframe3" style="width: 412px; height: 915px; transform: scale(0.6068); transform-origin: top left; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <!-- Screen 3: iPhone XR Landscape -->
-                  <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-                    <div style="color: var(--color-primary); font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; font-family: monospace; letter-spacing: 0.5px;">🍎 iPhone XR Landscape (896 × 414)</div>
-                    <div style="background: #000; padding: 10px; border-radius: 38px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 0 2px rgba(30, 214, 91, 0.2), inset 0 0 0 1px rgba(255,255,255,0.1);">
-                      <!-- iPhone XR Left Notch -->
-                      <div style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); width: 18px; height: 110px; background: #000; border-radius: 0 14px 14px 0; z-index: 10; box-shadow: inset -1px 0 3px rgba(255,255,255,0.05);"></div>
-                      <div style="width: 450px; height: 208px; border-radius: 28px; overflow: hidden; background: #111; position: relative;">
-                        <iframe id="matrixIframe2" style="width: 896px; height: 414px; transform: scale(0.5022); transform-origin: top left; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
-                      </div>
-                    </div>
                   </div>
-
-                  <!-- Screen 4: Google Pixel 7 Landscape -->
-                  <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-                    <div style="color: var(--color-primary); font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; font-family: monospace; letter-spacing: 0.5px;">🤖 Pixel 7 Landscape (915 × 412)</div>
-                    <div style="background: #000; padding: 10px; border-radius: 38px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 0 2px rgba(30, 214, 91, 0.2), inset 0 0 0 1px rgba(255,255,255,0.1);">
-                      <!-- Pixel 7 Left Punch-hole Camera -->
-                      <div style="position: absolute; top: 50%; left: 16px; transform: translateY(-50%); width: 12px; height: 12px; background: #000; border-radius: 50%; z-index: 10; box-shadow: inset 0 0 2px rgba(255,255,255,0.1);"></div>
-                      <div style="width: 450px; height: 203px; border-radius: 28px; overflow: hidden; background: #111; position: relative;">
-                        <iframe id="matrixIframe4" style="width: 915px; height: 412px; transform: scale(0.4918); transform-origin: top left; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
-                      </div>
-                    </div>
-                  </div>
-
                 </div>
+
+                <!-- Section 2: Landscape Screens (iPhone XR & Pixel 7) -->
+                <div style="width: 100%;">
+                  <div style="display: flex; gap: 2.5rem; justify-content: center; flex-wrap: wrap; align-items: center;">
+                    
+                    <!-- Screen 3: iPhone XR Landscape -->
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                      <div style="color: var(--color-primary); font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; font-family: monospace; letter-spacing: 0.5px;">🍎 iPhone XR Landscape (896 × 414)</div>
+                      <div style="background: #000; padding: 10px; border-radius: 38px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 0 2px rgba(30, 214, 91, 0.2), inset 0 0 0 1px rgba(255,255,255,0.1);">
+                        <!-- iPhone XR Left Notch -->
+                        <div style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); width: 18px; height: 110px; background: #000; border-radius: 0 14px 14px 0; z-index: 10; box-shadow: inset -1px 0 3px rgba(255,255,255,0.05);"></div>
+                        <div style="width: 450px; height: 208px; border-radius: 28px; overflow: hidden; background: #111; position: relative;">
+                          <iframe id="matrixIframe2" style="width: 896px; height: 414px; transform: scale(0.5022); transform-origin: top left; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Screen 4: Google Pixel 7 Landscape -->
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                      <div style="color: var(--color-primary); font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; font-family: monospace; letter-spacing: 0.5px;">🤖 Pixel 7 Landscape (915 × 412)</div>
+                      <div style="background: #000; padding: 10px; border-radius: 38px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 0 2px rgba(30, 214, 91, 0.2), inset 0 0 0 1px rgba(255,255,255,0.1);">
+                        <!-- Pixel 7 Left Punch-hole Camera -->
+                        <div style="position: absolute; top: 50%; left: 16px; transform: translateY(-50%); width: 12px; height: 12px; background: #000; border-radius: 50%; z-index: 10; box-shadow: inset 0 0 2px rgba(255,255,255,0.1);"></div>
+                        <div style="width: 450px; height: 203px; border-radius: 28px; overflow: hidden; background: #111; position: relative;">
+                          <iframe id="matrixIframe4" style="width: 915px; height: 412px; transform: scale(0.4918); transform-origin: top left; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
               </div>
 
               <!-- Controls -->
               <div class="device-controls" style="display: flex; gap: 0.8rem; margin-top: 2.5rem; background: rgba(0,0,0,0.6); padding: 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px); flex-wrap: wrap; align-items: center;">
                 <select id="deviceSelect" class="form-select" style="width: 190px; padding: 0.6rem 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem; color: #fff; border-radius: 12px; transition: border-color 0.2s;">
                   <option value="414x896">iPhone XR (414x896)</option>
+                  <option value="412x915">Pixel 7 (412x915)</option>
                   <option value="393x852">iPhone 16 Pro (393x852)</option>
                   <option value="428x926">iPhone 14 Plus (428x926)</option>
                   <option value="360x800">Android Medium (360x800)</option>
@@ -424,6 +437,24 @@
       
       if (deviceSelect.value === '1024x1366' || deviceSelect.value === '360x800') {
         notch.style.display = 'none';
+      } else if (deviceSelect.value === '412x915') {
+        // Pixel 7 Punch-hole Camera
+        notch.style.display = 'block';
+        notch.style.borderRadius = '50%';
+        notch.style.boxShadow = 'inset 0 0 3px rgba(255,255,255,0.2)';
+        if (isLandscape) {
+          notch.style.width = '16px';
+          notch.style.height = '16px';
+          notch.style.top = '50%';
+          notch.style.left = '20px';
+          notch.style.transform = 'translateY(-50%)';
+        } else {
+          notch.style.width = '16px';
+          notch.style.height = '16px';
+          notch.style.top = '20px';
+          notch.style.left = '50%';
+          notch.style.transform = 'translateX(-50%)';
+        }
       } else {
         notch.style.display = 'block';
         if (deviceSelect.value === '414x896' || deviceSelect.value === '428x926') {
@@ -710,6 +741,8 @@
           if (val === '414x896' || val === '428x926') {
              if (isLandscape) radii = [0, 20, 20, 0];
              else radii = [0, 0, 20, 20];
+          } else if (val === '412x915') {
+             radii = [8]; // 16px diameter circle
           }
           
           ctx.fillStyle = '#000';
