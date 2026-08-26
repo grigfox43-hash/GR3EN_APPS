@@ -91,6 +91,47 @@
 
           <!-- Main Workspace -->
           <div class="tool-main">
+            <!-- Size Breakdown Card (shows after inlining) -->
+            <div id="sizeBreakdownCard" style="display:none; background: rgba(0,0,0,0.6); border: 1px solid var(--color-primary); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 0 20px rgba(30,214,91,0.15);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="color: var(--color-primary); margin: 0; font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 1px;">ДИАГРАММА ВЕСА АССЕТОВ</h3>
+                <div id="totalInlinedSize" style="font-family: monospace; font-size: 1.1rem; color: #fff; font-weight: bold;">0.00 KB</div>
+              </div>
+
+              <!-- Multi-segment progress bar -->
+              <div id="breakdownBar" style="display: flex; height: 18px; border-radius: 9px; overflow: hidden; background: #222; margin-bottom: 1.2rem; border: 1px solid rgba(255,255,255,0.1);">
+                <div id="barJs" style="background: #f7df1e; width: 0%; transition: width 0.5s;" title="JavaScript"></div>
+                <div id="barCss" style="background: #2965f1; width: 0%; transition: width 0.5s;" title="CSS"></div>
+                <div id="barImg" style="background: #1ed65f; width: 0%; transition: width 0.5s;" title="Картинки (Base64)"></div>
+                <div id="barAudio" style="background: #a855f7; width: 0%; transition: width 0.5s;" title="Аудио"></div>
+                <div id="barHtml" style="background: #ff5722; width: 0%; transition: width 0.5s;" title="HTML Разметка"></div>
+              </div>
+
+              <!-- Legend grid -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.8rem; font-size: 0.85rem;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 12px; height: 12px; border-radius: 3px; background: #f7df1e;"></div>
+                  <div>JS: <span id="legendJs" style="color:#fff; font-weight:600;">0 KB (0%)</span></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 12px; height: 12px; border-radius: 3px; background: #2965f1;"></div>
+                  <div>CSS: <span id="legendCss" style="color:#fff; font-weight:600;">0 KB (0%)</span></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 12px; height: 12px; border-radius: 3px; background: #1ed65f;"></div>
+                  <div>Медиа: <span id="legendImg" style="color:#fff; font-weight:600;">0 KB (0%)</span></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 12px; height: 12px; border-radius: 3px; background: #a855f7;"></div>
+                  <div>Аудио: <span id="legendAudio" style="color:#fff; font-weight:600;">0 KB (0%)</span></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 12px; height: 12px; border-radius: 3px; background: #ff5722;"></div>
+                  <div>HTML: <span id="legendHtml" style="color:#fff; font-weight:600;">0 KB (0%)</span></div>
+                </div>
+              </div>
+            </div>
+
             <h3 style="color: #fff; margin-bottom: 1rem; font-family: var(--font-display); font-size: 1.8rem;">ЛОГ СБОРКИ</h3>
             <div id="logBox" class="log-box notranslate" translate="no">
               <div class="log-entry log-info"><span class="log-icon">></span><span class="log-text">Готов к работе. Загрузите ZIP архив.</span></div>
@@ -255,6 +296,51 @@
         const newLen = html.length;
         log(`Сжатие завершено! Сэкономлено: ${((origLen - newLen)/1024).toFixed(2)} KB`, 'success');
       }
+
+      // Calculate Size Breakdown
+      let jsBytes = 0;
+      let cssBytes = 0;
+      let imgBytes = 0;
+      let audioBytes = 0;
+
+      // Scan inlined tags in final html
+      const scriptMatches = html.match(/<script[\s\S]*?<\/script>/gi) || [];
+      scriptMatches.forEach(s => jsBytes += new Blob([s]).size);
+
+      const styleMatches = html.match(/<style[\s\S]*?<\/style>/gi) || [];
+      styleMatches.forEach(s => cssBytes += new Blob([s]).size);
+
+      const dataUriMatches = html.match(/data:(image|audio|font)\/[^;]+;base64,[A-Za-z0-9+/=]+/gi) || [];
+      dataUriMatches.forEach(uri => {
+        const bytes = uri.length;
+        if (uri.startsWith('data:image')) imgBytes += bytes;
+        else if (uri.startsWith('data:audio')) audioBytes += bytes;
+      });
+
+      const totalBytes = new Blob([html]).size;
+      const htmlMarkupBytes = Math.max(0, totalBytes - jsBytes - cssBytes - imgBytes - audioBytes);
+
+      // Update Breakdown UI
+      document.getElementById('sizeBreakdownCard').style.display = 'block';
+      document.getElementById('totalInlinedSize').textContent = (totalBytes / 1024).toFixed(2) + ' KB';
+
+      const jsPct = ((jsBytes / totalBytes) * 100).toFixed(1);
+      const cssPct = ((cssBytes / totalBytes) * 100).toFixed(1);
+      const imgPct = ((imgBytes / totalBytes) * 100).toFixed(1);
+      const audioPct = ((audioBytes / totalBytes) * 100).toFixed(1);
+      const htmlPct = ((htmlMarkupBytes / totalBytes) * 100).toFixed(1);
+
+      document.getElementById('barJs').style.width = jsPct + '%';
+      document.getElementById('barCss').style.width = cssPct + '%';
+      document.getElementById('barImg').style.width = imgPct + '%';
+      document.getElementById('barAudio').style.width = audioPct + '%';
+      document.getElementById('barHtml').style.width = htmlPct + '%';
+
+      document.getElementById('legendJs').textContent = `${(jsBytes/1024).toFixed(1)} KB (${jsPct}%)`;
+      document.getElementById('legendCss').textContent = `${(cssBytes/1024).toFixed(1)} KB (${cssPct}%)`;
+      document.getElementById('legendImg').textContent = `${(imgBytes/1024).toFixed(1)} KB (${imgPct}%)`;
+      document.getElementById('legendAudio').textContent = `${(audioBytes/1024).toFixed(1)} KB (${audioPct}%)`;
+      document.getElementById('legendHtml').textContent = `${(htmlMarkupBytes/1024).toFixed(1)} KB (${htmlPct}%)`;
 
       log('Сборка успешно завершена!', 'success');
       

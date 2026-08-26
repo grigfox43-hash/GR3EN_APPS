@@ -44,11 +44,86 @@
       <div class="site-container">
         
         <div class="tool-header">
-          <h1>AUDIO SPRITE GENERATOR</h1>
-          <p>Объединение нескольких аудиофайлов (MP3/WAV/OGG) в один аудиотрек. Это решает проблему ограничений автовоспроизведения звуков в мобильных браузерах (Playables).</p>
+          <h1>AUDIO OPTIMIZER & SPRITES</h1>
+          <p>Визуальная обрезка звуков, понижение частоты дискретизации для экономии веса в Playable Ads, кодирование в Base64 и склейка в Audio Sprite.</p>
         </div>
 
-        <div class="tool-layout">
+        <!-- Mode Switcher -->
+        <div style="display: flex; gap: 0.8rem; margin-bottom: 2rem; background: rgba(0,0,0,0.4); padding: 6px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: fit-content;">
+          <button id="tabTrimmer" class="btn-cyber active" style="padding: 8px 20px; font-weight: 700; font-size: 0.95rem; background: var(--color-primary); color: #000; border: none; border-radius: 8px; cursor: pointer;">Trim & Optimize (Trimmer)</button>
+          <button id="tabSprite" class="btn-cyber" style="padding: 8px 20px; font-weight: 700; font-size: 0.95rem; background: transparent; color: #fff; border: none; border-radius: 8px; cursor: pointer;">Audio Sprite (Merge)</button>
+        </div>
+
+        <!-- MODE 1: TRIMMER & OPTIMIZER -->
+        <div id="trimmerLayout" class="tool-layout">
+          <!-- Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">AUDIO SETTINGS</h3>
+            
+            <div id="trimDropzone" class="dropzone" style="min-height: 120px; padding: 1rem; border-width: 1px;">
+              <p style="font-size: 1rem;">Drop 1 audio file here</p>
+              <input type="file" id="trimAudioInput" accept="audio/*" style="display:none;">
+            </div>
+
+            <div class="form-group" style="margin-top: 1.5rem;">
+              <label class="form-label">Sample Rate</label>
+              <select id="trimSampleRate" class="form-select">
+                <option value="44100" selected>44.1 kHz (Standard)</option>
+                <option value="22050">22.05 kHz (Save 50% size)</option>
+                <option value="11025">11.025 kHz (Max compression for SFX)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Channels</label>
+              <select id="trimChannels" class="form-select">
+                <option value="1" selected>Mono (1 channel, save 2x)</option>
+                <option value="2">Stereo (2 channels)</option>
+              </select>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1.5rem;">
+              <button id="btnExportTrimWav" class="btn-cyber btn-cyber-primary" style="width: 100%; font-size: 1rem; padding: 0.6rem; display: none;">Download .WAV</button>
+              <button id="btnCopyTrimBase64" class="btn-cyber btn-cyber-outline" style="width: 100%; font-size: 1rem; padding: 0.6rem; display: none;">Copy Base64 (Data URI)</button>
+            </div>
+          </aside>
+
+          <!-- Main -->
+          <div class="tool-main">
+            <h3 style="color: #fff; margin-bottom: 1rem; font-family: var(--font-display); font-size: 1.5rem;">WAVEFORM VISUALIZER</h3>
+            
+            <!-- Waveform Canvas Box -->
+            <div id="waveformWrapper" style="position: relative; width: 100%; height: 180px; background: #05070a; border: 1px solid rgba(30, 214, 91, 0.3); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+              <canvas id="waveformCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
+              <div id="waveformOverlay" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+                <!-- Selection Region -->
+                <div id="trimRegion" style="position: absolute; top: 0; left: 0%; width: 100%; height: 100%; background: rgba(30, 214, 91, 0.15); border-left: 3px solid var(--color-primary); border-right: 3px solid var(--color-primary);"></div>
+              </div>
+              <div id="trimPlaceholder" style="position: absolute; color: var(--color-text-muted); font-size: 0.9rem;">Load audio file to display waveform</div>
+            </div>
+
+            <!-- Waveform Controls -->
+            <div id="trimControls" style="display: none; margin-top: 1.5rem; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <div style="display: flex; gap: 0.8rem; align-items: center;">
+                <button id="btnPlayTrim" class="btn-cyber btn-cyber-primary" style="padding: 8px 20px;">▶ Play Selection</button>
+                <button id="btnStopTrim" class="btn-cyber" style="padding: 8px 16px; background: rgba(255,255,255,0.05); color:#fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">⏹ Stop</button>
+              </div>
+
+              <div style="display: flex; gap: 1.5rem; font-family: monospace; font-size: 0.9rem; color: #fff;">
+                <div>Start: <span id="trimStartVal" style="color: var(--color-primary);">0.000</span>s</div>
+                <div>End: <span id="trimEndVal" style="color: var(--color-primary);">0.000</span>s</div>
+                <div>Length: <span id="trimDurationVal" style="color: #00ffff;">0.000</span>s</div>
+              </div>
+            </div>
+
+            <div id="trimInfoBox" style="margin-top: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 0.85rem; color: var(--color-text-muted); display: none;">
+              💡 <strong>Подсказка:</strong> Перетаскивайте левый и правый ползунки прямо по звуковой волне мышкой, чтобы обрезать лишнюю тишину.
+            </div>
+          </div>
+        </div>
+
+        <!-- MODE 2: AUDIO SPRITE -->
+        <div id="spriteLayout" class="tool-layout" style="display: none;">
           <!-- Settings Sidebar -->
           <aside class="tool-sidebar">
             <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">АУДИО ФАЙЛЫ</h3>
@@ -59,7 +134,7 @@
             </div>
             
             <div class="form-group" style="margin-top: 1.5rem;">
-              <label class="form-label" for="gapInput">Пауза между звуками (секунды)</label>
+              <label class="form-label" for="gapInput">Pause между звуками (секунды)</label>
               <input type="number" id="gapInput" class="form-input" value="0.5" min="0" max="2" step="0.1">
             </div>
             
@@ -68,7 +143,7 @@
             </button>
 
             <div id="exportGroup" style="display:none; margin-top: 1.5rem; gap: 0.5rem; flex-direction: column;">
-              <button id="btnExportAudio" class="btn-cyber btn-cyber-outline" style="width: 100%; font-size: 1rem; padding: 0.5rem;">Скачать .WAV</button>
+              <button id="btnExportAudio" class="btn-cyber btn-cyber-outline" style="width: 100%; font-size: 1rem; padding: 0.5rem;">Download .WAV</button>
               <button id="btnExportJson" class="btn-cyber btn-cyber-outline" style="width: 100%; font-size: 1rem; padding: 0.5rem;">Скачать .JSON</button>
             </div>
           </aside>
@@ -88,6 +163,257 @@
   </main>
 
   <script>
+    // Mode Switching
+    const tabTrimmer = document.getElementById('tabTrimmer');
+    const tabSprite = document.getElementById('tabSprite');
+    const trimmerLayout = document.getElementById('trimmerLayout');
+    const spriteLayout = document.getElementById('spriteLayout');
+
+    tabTrimmer.addEventListener('click', () => {
+      tabTrimmer.style.background = 'var(--color-primary)';
+      tabTrimmer.style.color = '#000';
+      tabSprite.style.background = 'transparent';
+      tabSprite.style.color = '#fff';
+      trimmerLayout.style.display = 'grid';
+      spriteLayout.style.display = 'none';
+      if (trimAudioBuffer) drawWaveform();
+    });
+
+    tabSprite.addEventListener('click', () => {
+      tabSprite.style.background = 'var(--color-primary)';
+      tabSprite.style.color = '#000';
+      tabTrimmer.style.background = 'transparent';
+      tabTrimmer.style.color = '#fff';
+      spriteLayout.style.display = 'grid';
+      trimmerLayout.style.display = 'none';
+    });
+
+    // Audio Context
+    let audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    // ==========================================
+    // TRIMMER & OPTIMIZER LOGIC
+    // ==========================================
+    const trimDropzone = document.getElementById('trimDropzone');
+    const trimAudioInput = document.getElementById('trimAudioInput');
+    const trimSampleRate = document.getElementById('trimSampleRate');
+    const trimChannels = document.getElementById('trimChannels');
+    const btnExportTrimWav = document.getElementById('btnExportTrimWav');
+    const btnCopyTrimBase64 = document.getElementById('btnCopyTrimBase64');
+    
+    const waveformWrapper = document.getElementById('waveformWrapper');
+    const waveformCanvas = document.getElementById('waveformCanvas');
+    const waveformCtx = waveformCanvas.getContext('2d');
+    const trimRegion = document.getElementById('trimRegion');
+    const trimPlaceholder = document.getElementById('trimPlaceholder');
+    const trimControls = document.getElementById('trimControls');
+    const trimInfoBox = document.getElementById('trimInfoBox');
+    
+    const btnPlayTrim = document.getElementById('btnPlayTrim');
+    const btnStopTrim = document.getElementById('btnStopTrim');
+    const trimStartVal = document.getElementById('trimStartVal');
+    const trimEndVal = document.getElementById('trimEndVal');
+    const trimDurationVal = document.getElementById('trimDurationVal');
+
+    let trimAudioBuffer = null;
+    let trimOriginalFile = null;
+    let trimStartSec = 0;
+    let trimEndSec = 0;
+    let currentTrimSource = null;
+
+    trimDropzone.addEventListener('click', () => trimAudioInput.click());
+    trimDropzone.addEventListener('dragover', (e) => { e.preventDefault(); trimDropzone.classList.add('dragover'); });
+    trimDropzone.addEventListener('dragleave', () => trimDropzone.classList.remove('dragover'));
+    trimDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      trimDropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handleTrimFile(e.dataTransfer.files[0]);
+    });
+    trimAudioInput.addEventListener('change', (e) => {
+      if (e.target.files.length) handleTrimFile(e.target.files[0]);
+    });
+
+    async function handleTrimFile(file) {
+      if (!file.type.startsWith('audio/')) return alert('Выберите аудиофайл');
+      trimOriginalFile = file;
+      try {
+        const arr = await file.arrayBuffer();
+        trimAudioBuffer = await audioContext.decodeAudioData(arr);
+        trimStartSec = 0;
+        trimEndSec = trimAudioBuffer.duration;
+        
+        trimPlaceholder.style.display = 'none';
+        trimControls.style.display = 'flex';
+        trimInfoBox.style.display = 'block';
+        btnExportTrimWav.style.display = 'block';
+        btnCopyTrimBase64.style.display = 'block';
+        
+        updateTrimLabels();
+        updateTrimRegionUI();
+        drawWaveform();
+      } catch (err) {
+        alert('Ошибка декодирования аудио: ' + err.message);
+      }
+    }
+
+    function updateTrimLabels() {
+      trimStartVal.textContent = trimStartSec.toFixed(3);
+      trimEndVal.textContent = trimEndSec.toFixed(3);
+      trimDurationVal.textContent = Math.max(0, trimEndSec - trimStartSec).toFixed(3);
+    }
+
+    function updateTrimRegionUI() {
+      if (!trimAudioBuffer) return;
+      const leftPct = (trimStartSec / trimAudioBuffer.duration) * 100;
+      const rightPct = (trimEndSec / trimAudioBuffer.duration) * 100;
+      trimRegion.style.left = leftPct + '%';
+      trimRegion.style.width = Math.max(0, rightPct - leftPct) + '%';
+    }
+
+    function drawWaveform() {
+      if (!trimAudioBuffer) return;
+      const rect = waveformWrapper.getBoundingClientRect();
+      waveformCanvas.width = rect.width;
+      waveformCanvas.height = rect.height;
+
+      const width = waveformCanvas.width;
+      const height = waveformCanvas.height;
+      const data = trimAudioBuffer.getChannelData(0);
+      const step = Math.ceil(data.length / width);
+      const amp = height / 2;
+
+      waveformCtx.clearRect(0, 0, width, height);
+
+      // Center Line
+      waveformCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      waveformCtx.beginPath();
+      waveformCtx.moveTo(0, amp);
+      waveformCtx.lineTo(width, amp);
+      waveformCtx.stroke();
+
+      // Waveform Bars
+      waveformCtx.fillStyle = '#1ed65f';
+      for (let i = 0; i < width; i++) {
+        let min = 1.0;
+        let max = -1.0;
+        for (let j = 0; j < step; j++) {
+          const datum = data[(i * step) + j];
+          if (datum < min) min = datum;
+          if (datum > max) max = datum;
+        }
+        const yTop = (1 + min) * amp;
+        const yBottom = (1 + max) * amp;
+        waveformCtx.fillRect(i, yTop, 1, Math.max(1, yBottom - yTop));
+      }
+    }
+    window.addEventListener('resize', () => { if (trimAudioBuffer) drawWaveform(); });
+
+    // Interactive Drag Selection on Waveform
+    let isSelectingWave = false;
+    let selectStartX = 0;
+
+    waveformWrapper.addEventListener('mousedown', (e) => {
+      if (!trimAudioBuffer) return;
+      isSelectingWave = true;
+      const rect = waveformWrapper.getBoundingClientRect();
+      selectStartX = (e.clientX - rect.left) / rect.width;
+      trimStartSec = Math.max(0, Math.min(trimAudioBuffer.duration, selectStartX * trimAudioBuffer.duration));
+      trimEndSec = trimStartSec;
+      updateTrimLabels();
+      updateTrimRegionUI();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isSelectingWave || !trimAudioBuffer) return;
+      const rect = waveformWrapper.getBoundingClientRect();
+      let currentX = (e.clientX - rect.left) / rect.width;
+      currentX = Math.max(0, Math.min(1, currentX));
+      const currentTime = currentX * trimAudioBuffer.duration;
+      
+      if (currentTime >= selectStartX * trimAudioBuffer.duration) {
+        trimStartSec = selectStartX * trimAudioBuffer.duration;
+        trimEndSec = currentTime;
+      } else {
+        trimStartSec = currentTime;
+        trimEndSec = selectStartX * trimAudioBuffer.duration;
+      }
+      updateTrimLabels();
+      updateTrimRegionUI();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isSelectingWave) return;
+      isSelectingWave = false;
+      if (Math.abs(trimEndSec - trimStartSec) < 0.05) {
+        // If clicked without dragging, reset to full range
+        trimStartSec = 0;
+        trimEndSec = trimAudioBuffer.duration;
+        updateTrimLabels();
+        updateTrimRegionUI();
+      }
+    });
+
+    // Play/Stop Trim Selection
+    btnPlayTrim.addEventListener('click', () => {
+      if (!trimAudioBuffer) return;
+      if (currentTrimSource) currentTrimSource.stop();
+
+      currentTrimSource = audioContext.createBufferSource();
+      currentTrimSource.buffer = trimAudioBuffer;
+      currentTrimSource.connect(audioContext.destination);
+      const dur = Math.max(0.01, trimEndSec - trimStartSec);
+      currentTrimSource.start(0, trimStartSec, dur);
+    });
+
+    btnStopTrim.addEventListener('click', () => {
+      if (currentTrimSource) {
+        currentTrimSource.stop();
+        currentTrimSource = null;
+      }
+    });
+
+    // Generate Rendered & Resampled Audio Buffer
+    async function getTrimmedAudioBlob() {
+      if (!trimAudioBuffer) return null;
+      const targetSampleRate = parseInt(trimSampleRate.value);
+      const targetChannels = parseInt(trimChannels.value);
+      const duration = Math.max(0.01, trimEndSec - trimStartSec);
+
+      const offlineCtx = new OfflineAudioContext(targetChannels, Math.ceil(targetSampleRate * duration), targetSampleRate);
+      const source = offlineCtx.createBufferSource();
+      source.buffer = trimAudioBuffer;
+      source.connect(offlineCtx.destination);
+      source.start(0, trimStartSec, duration);
+
+      const rendered = await offlineCtx.startRendering();
+      return bufferToWave(rendered, rendered.length);
+    }
+
+    btnExportTrimWav.addEventListener('click', async () => {
+      const blob = await getTrimmedAudioBlob();
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const name = (trimOriginalFile ? trimOriginalFile.name.replace(/\.[^/.]+$/, "") : "sound") + "_trimmed.wav";
+      download(url, name);
+    });
+
+    btnCopyTrimBase64.addEventListener('click', async () => {
+      const blob = await getTrimmedAudioBlob();
+      if (!blob) return;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        navigator.clipboard.writeText(reader.result).then(() => {
+          const oldText = btnCopyTrimBase64.textContent;
+          btnCopyTrimBase64.textContent = "✓ Скопировано в буфер!";
+          setTimeout(() => btnCopyTrimBase64.textContent = oldText, 2000);
+        });
+      };
+      reader.readAsDataURL(blob);
+    });
+
+    // ==========================================
+    // SPRITE GENERATOR LOGIC
+    // ==========================================
     const dropzone = document.getElementById('dropzone');
     const audioInput = document.getElementById('audioInput');
     const fileList = document.getElementById('fileList');
@@ -98,7 +424,6 @@
     const btnExportJson = document.getElementById('btnExportJson');
     const logBox = document.getElementById('logBox');
 
-    let audioContext = new (window.AudioContext || window.webkitAudioContext)();
     let loadedFiles = [];
     let spriteJson = {};
     let finalWavBlob = null;
@@ -207,7 +532,7 @@
       
       try {
         const renderedBuffer = await offlineCtx.startRendering();
-        log(`Аудио спрайт сгенерирован! Длина: ${renderedBuffer.duration.toFixed(2)} сек.`, 'success');
+        log(`Audio спрайт сгенерирован! Length: ${renderedBuffer.duration.toFixed(2)} сек.`, 'success');
         
         // Encode to WAV
         finalWavBlob = bufferToWave(renderedBuffer, renderedBuffer.length);

@@ -68,7 +68,7 @@
               <div class="form-group">
                 <label class="form-label" style="display:flex; justify-content:space-between; align-items:flex-end;">
                   <span>Base64 (Data URI) Строка:</span>
-                  <button id="copyBtn" class="btn-cyber btn-cyber-outline" style="padding: 0.3rem 1rem; font-size: 1rem; border-radius: 4px; display: none;">Скопировать</button>
+                  <button id="copyBtn" class="btn-cyber btn-cyber-outline" style="padding: 0.3rem 1rem; font-size: 1rem; border-radius: 4px; display: none;">Copy</button>
                 </label>
                 <textarea class="notranslate" translate="no" id="outputArea" class="form-input" style="min-height: 200px; resize: vertical; word-break: break-all;" readonly placeholder="Здесь появится результат..."></textarea>
               </div>
@@ -104,7 +104,7 @@
       outputArea.select();
       document.execCommand('copy');
       copyBtn.textContent = 'Скопировано!';
-      setTimeout(() => copyBtn.textContent = 'Скопировать', 2000);
+      setTimeout(() => copyBtn.textContent = 'Copy', 2000);
     });
 
     function handleFile(file) {

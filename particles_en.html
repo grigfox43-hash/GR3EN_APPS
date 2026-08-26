@@ -158,6 +158,8 @@
     let particles = [];
     let isDrawing = false;
     let mouseX = 0, mouseY = 0;
+    let customParticleImg = null;
+    let customParticleDataUrl = null;
 
     const canvas = document.getElementById('renderCanvas');
     const ctx = canvas.getContext('2d');
@@ -213,16 +215,53 @@
             <select id="input_shape" class="form-select">
                 <option value="circle">Круг (Circle)</option>
                 <option value="square">Квадрат (Square)</option>
-                <option value="star">Звезда (Star)</option>
+                <option value="star">Star</option>
                 <option value="line">Линия (Line)</option>
                 <option value="ring">Кольцо (Ring)</option>
-                <option value="heart">Сердце (Heart)</option>
+                <option value="heart">Heart</option>
+                <option value="custom">Custom Sprite (PNG/SVG)</option>
             </select>
+            <div id="customImageContainer" style="display: none; margin-top: 0.8rem; background: rgba(0,0,0,0.4); padding: 0.8rem; border-radius: 8px; border: 1px dashed rgba(30,214,91,0.4);">
+                <div style="display: flex; gap: 0.8rem; align-items: center;">
+                    <div id="customImgThumb" style="width: 44px; height: 44px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                        <span style="font-size: 0.7rem; color: #777;">Нет</span>
+                    </div>
+                    <button type="button" id="btnUploadParticleImg" class="btn-cyber" style="padding: 4px 10px; font-size: 0.8rem; flex: 1;">Choose File</button>
+                    <input type="file" id="particleImgFile" accept="image/*" style="display: none;">
+                </div>
+            </div>
         `;
         controlsContainer.appendChild(shapeGroup);
         const shapeSelect = shapeGroup.querySelector('#input_shape');
+        const customImageContainer = shapeGroup.querySelector('#customImageContainer');
+        const btnUploadParticleImg = shapeGroup.querySelector('#btnUploadParticleImg');
+        const particleImgFile = shapeGroup.querySelector('#particleImgFile');
+        const customImgThumb = shapeGroup.querySelector('#customImgThumb');
+
         shapeSelect.value = activeParams.shape;
-        shapeSelect.addEventListener('change', e => activeParams.shape = e.target.value);
+        if (activeParams.shape === 'custom') customImageContainer.style.display = 'block';
+
+        shapeSelect.addEventListener('change', e => {
+            activeParams.shape = e.target.value;
+            customImageContainer.style.display = e.target.value === 'custom' ? 'block' : 'none';
+        });
+
+        btnUploadParticleImg.addEventListener('click', () => particleImgFile.click());
+        particleImgFile.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    customParticleImg = new Image();
+                    customParticleImg.onload = () => {
+                        customParticleDataUrl = ev.target.result;
+                        customImgThumb.innerHTML = `<img src="${ev.target.result}" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+                    };
+                    customParticleImg.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
         
         // Colors
         const colorGroup = document.createElement('div');
@@ -387,6 +426,13 @@
                 ctx.bezierCurveTo(15, -25, 0, -15, 0, -5);
                 ctx.fill();
                 ctx.restore();
+            } else if (p.shape === 'custom' && customParticleImg) {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.life * 0.05);
+                const sz = p.size * 2;
+                ctx.drawImage(customParticleImg, -sz / 2, -sz / 2, sz, sz);
+                ctx.restore();
             }
             ctx.globalAlpha = 1;
         }
@@ -448,6 +494,9 @@ class ParticleSystem {
         
         // Настройки эффекта
         this.params = ${JSON.stringify(activeParams, null, 4)};
+        ${customParticleDataUrl && activeParams.shape === 'custom' ? `
+        this.image = new Image();
+        this.image.src = "${customParticleDataUrl}";` : ''}
     }
     
     emit(x, y) {

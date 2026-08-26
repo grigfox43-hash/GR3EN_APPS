@@ -81,7 +81,7 @@
             <div class="form-group" style="flex: 1; display: flex; flex-direction: column; margin-bottom: 0;">
               <label class="form-label" style="display:flex; justify-content:space-between; align-items:flex-end;">
                 <span>Минифицированный код:</span>
-                <button id="copyBtn" class="btn-cyber btn-cyber-outline" style="padding: 0.3rem 1rem; font-size: 1rem; border-radius: 4px; display: none;">Скопировать</button>
+                <button id="copyBtn" class="btn-cyber btn-cyber-outline" style="padding: 0.3rem 1rem; font-size: 1rem; border-radius: 4px; display: none;">Copy</button>
               </label>
               <textarea class="notranslate" translate="no" id="outputCode" class="form-input" style="flex: 1; min-height: 250px; font-family: monospace; resize: vertical; background: rgba(0,0,0,0.6);" readonly placeholder="Здесь появится сжатый код..."></textarea>
             </div>
@@ -178,7 +178,7 @@
       outputCode.select();
       document.execCommand('copy');
       copyBtn.textContent = 'Скопировано!';
-      setTimeout(() => copyBtn.textContent = 'Скопировать', 2000);
+      setTimeout(() => copyBtn.textContent = 'Copy', 2000);
     });
   </script>
 

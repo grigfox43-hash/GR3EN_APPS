@@ -123,52 +123,120 @@
           <div class="tool-main">
             <div id="previewContainer" style="display: none; flex-direction: column; align-items: center; margin-top: 3rem; background: linear-gradient(180deg, rgba(30, 214, 91, 0.02) 0%, rgba(10, 12, 16, 0.8) 100%); border: 1px solid rgba(30, 214, 91, 0.1); padding: 3rem 2rem; border-radius: 24px; position: relative; overflow: hidden;">
               <h3 style="color: var(--color-primary); margin-bottom: 2rem; font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 2px; text-shadow: 0 0 15px rgba(30,214,91,0.4);">LIVE PREVIEW</h3>
-              
-              <!-- Mock Phone -->
-              <div id="deviceMock" style="width: 414px; height: 896px; background: #000; padding: 12px; border-radius: 46px; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 2px rgba(30, 214, 91, 0.2), inset 0 0 0 1px rgba(255,255,255,0.1); transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                <!-- iPhone XR Notch -->
-                <div id="deviceNotch" style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 170px; height: 28px; background: #000; border-radius: 0 0 20px 20px; z-index: 10; box-shadow: inset 0 -2px 5px rgba(255,255,255,0.05);"></div>
-                
-                <div style="width: 100%; height: 100%; border-radius: 34px; overflow: hidden; background: #111;">
-                  <iframe id="previewIframe" style="width: 100%; height: 100%; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+
+              <!-- 1. Single Device Mock -->
+              <div id="singleDeviceView" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                <div id="deviceMock" style="width: 414px; height: 896px; background: #000; padding: 12px; border-radius: 46px; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 2px rgba(30, 214, 91, 0.2), inset 0 0 0 1px rgba(255,255,255,0.1); transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                  <!-- iPhone XR Notch -->
+                  <div id="deviceNotch" style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 170px; height: 28px; background: #000; border-radius: 0 0 20px 20px; z-index: 10; box-shadow: inset 0 -2px 5px rgba(255,255,255,0.05);"></div>
+                  
+                  <div style="width: 100%; height: 100%; border-radius: 34px; overflow: hidden; background: #111; position: relative;">
+                    <!-- Network Throttling Loading Overlay -->
+                    <div id="throttlingOverlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5,7,10,0.95); z-index: 100; flex-direction: column; align-items: center; justify-content: center; padding: 2rem;">
+                      <div style="width: 48px; height: 48px; border: 3px solid rgba(30,214,91,0.2); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem;"></div>
+                      <div id="throttleStatusText" style="color: #fff; font-family: monospace; font-size: 0.9rem; margin-bottom: 0.5rem;">Network Emulation...</div>
+                      <div style="width: 80%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                        <div id="throttleProgressBar" style="width: 0%; height: 100%; background: var(--color-primary); transition: width 0.1s;"></div>
+                      </div>
+                      <div id="throttleSpeedInfo" style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.5rem;"></div>
+                    </div>
+
+                    <iframe id="previewIframe" style="width: 100%; height: 100%; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Responsive Matrix View (4 screens grid) -->
+              <div id="matrixView" style="display: none; width: 100%; max-width: 1200px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; justify-items: center;">
+                  
+                  <!-- Screen 1: Portrait Phone -->
+                  <div style="background: #000; padding: 10px; border-radius: 24px; border: 1px solid rgba(30,214,91,0.3); display: flex; flex-direction: column; align-items: center;">
+                    <div style="color: var(--color-primary); font-size: 0.8rem; font-weight: 700; margin-bottom: 6px;">📱 Portrait Phone (393 x 852)</div>
+                    <div style="width: 260px; height: 480px; border-radius: 16px; overflow: hidden; background: #111;">
+                      <iframe id="matrixIframe1" style="width: 100%; height: 100%; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+                    </div>
+                  </div>
+
+                  <!-- Screen 2: Landscape Phone -->
+                  <div style="background: #000; padding: 10px; border-radius: 24px; border: 1px solid rgba(30,214,91,0.3); display: flex; flex-direction: column; align-items: center;">
+                    <div style="color: var(--color-primary); font-size: 0.8rem; font-weight: 700; margin-bottom: 6px;">📱 Landscape Phone (852 x 393)</div>
+                    <div style="width: 320px; height: 180px; border-radius: 16px; overflow: hidden; background: #111; margin-top: 140px;">
+                      <iframe id="matrixIframe2" style="width: 100%; height: 100%; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+                    </div>
+                  </div>
+
+                  <!-- Screen 3: Tablet -->
+                  <div style="background: #000; padding: 10px; border-radius: 24px; border: 1px solid rgba(30,214,91,0.3); display: flex; flex-direction: column; align-items: center;">
+                    <div style="color: var(--color-primary); font-size: 0.8rem; font-weight: 700; margin-bottom: 6px;">💻 iPad / Tablet (768 x 1024)</div>
+                    <div style="width: 280px; height: 373px; border-radius: 16px; overflow: hidden; background: #111; margin-top: 40px;">
+                      <iframe id="matrixIframe3" style="width: 100%; height: 100%; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+                    </div>
+                  </div>
+
+                  <!-- Screen 4: Square / MREC -->
+                  <div style="background: #000; padding: 10px; border-radius: 24px; border: 1px solid rgba(30,214,91,0.3); display: flex; flex-direction: column; align-items: center;">
+                    <div style="color: var(--color-primary); font-size: 0.8rem; font-weight: 700; margin-bottom: 6px;">⬛ Square / Banner (480 x 480)</div>
+                    <div style="width: 260px; height: 260px; border-radius: 16px; overflow: hidden; background: #111; margin-top: 90px;">
+                      <iframe id="matrixIframe4" style="width: 100%; height: 100%; border: none; background: #fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
               <!-- Controls -->
-              <div class="device-controls" style="display: flex; gap: 1rem; margin-top: 2.5rem; background: rgba(0,0,0,0.6); padding: 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px);">
-                <select id="deviceSelect" class="form-select" style="width: 200px; padding: 0.6rem 1rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 0.9rem; color: #fff; border-radius: 12px; transition: border-color 0.2s;">
+              <div class="device-controls" style="display: flex; gap: 0.8rem; margin-top: 2.5rem; background: rgba(0,0,0,0.6); padding: 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px); flex-wrap: wrap; align-items: center;">
+                <select id="deviceSelect" class="form-select" style="width: 190px; padding: 0.6rem 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem; color: #fff; border-radius: 12px; transition: border-color 0.2s;">
                   <option value="414x896">iPhone XR (414x896)</option>
                   <option value="393x852">iPhone 16 Pro (393x852)</option>
                   <option value="428x926">iPhone 14 Plus (428x926)</option>
                   <option value="360x800">Android Medium (360x800)</option>
                   <option value="1024x1366">iPad Pro (1024x1366)</option>
                 </select>
-                
-                <button id="btnOrientation" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1.2rem; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; transition: all 0.2s;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect></svg>
-                  <span>Landscape</span>
+
+                <!-- Network Throttling Select -->
+                <select id="networkThrottleSelect" class="form-select" style="width: 170px; padding: 0.6rem 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem; color: #fff; border-radius: 12px;">
+                  <option value="none">🌐 No Throttling</option>
+                  <option value="fast3g">⚡ Fast 3G (1.5 MB/s)</option>
+                  <option value="slow3g">🐢 Slow 3G (400 KB/s)</option>
+                  <option value="offline">❌ Offline</option>
+                </select>
+
+                <!-- Toggle Matrix Button -->
+                <button id="btnToggleMatrix" title="Multi-Screen (Matrix 4x)" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1rem; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 </button>
                 
-                <button id="btnMute" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1rem; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                <button id="btnOrientation" title="Orientation" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1rem; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect></svg>
+                </button>
+                
+                <button id="btnMute" title="Sound" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1rem; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
                 </button>
 
-                <div id="fpsCounter" style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); color: #0f0; border: 1px solid #0f0; padding: 0 1rem; border-radius: 12px; font-family: monospace; font-size: 1rem; font-weight: bold; min-width: 80px;">
+                <div id="fpsCounter" style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); color: #0f0; border: 1px solid #0f0; padding: 0 0.8rem; border-radius: 12px; font-family: monospace; font-size: 0.9rem; font-weight: bold; min-width: 75px;">
                   60 FPS
                 </div>
 
-                <div style="width: 1px; background: rgba(255,255,255,0.1); margin: 0 0.5rem;"></div>
+                <div style="width: 1px; background: rgba(255,255,255,0.1); margin: 0 0.3rem;"></div>
 
                 <button id="btnScreenshot" title="Canvas Screenshot" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1rem; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                 </button>
 
-                <button id="btnRecord" title="Record WebM" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1rem; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; gap: 8px;">
+                <button id="btnRecord" title="Record WebM" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1rem; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-                  <span id="btnRecordText" style="font-size: 0.9rem;">Record</span>
                 </button>
 
-                <div style="width: 1px; background: rgba(255,255,255,0.1); margin: 0 0.5rem;"></div>
+                <div style="width: 1px; background: rgba(255,255,255,0.1); margin: 0 0.3rem;"></div>
+
+                <button id="btnReload" title="Reload" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1rem; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                </button>
+
+                <div style="width: 1px; background: rgba(255,255,255,0.1); margin: 0 0.3rem;"></div>
 
                 <button id="btnReload" title="Reload" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1rem; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
@@ -176,6 +244,7 @@
               </div>
               
               <style>
+                @keyframes spin { 100% { transform: rotate(360deg); } }
                 .device-controls button:hover, .device-controls select:hover {
                   background: rgba(30, 214, 91, 0.1) !important;
                   border-color: rgba(30, 214, 91, 0.4) !important;
@@ -391,12 +460,55 @@
       deviceMock.style.height = h + 'px';
     }
 
+    // Matrix Toggle
+    const btnToggleMatrix = document.getElementById('btnToggleMatrix');
+    const singleDeviceView = document.getElementById('singleDeviceView');
+    const matrixView = document.getElementById('matrixView');
+    let isMatrixMode = false;
+
+    if (btnToggleMatrix) {
+      btnToggleMatrix.addEventListener('click', () => {
+        isMatrixMode = !isMatrixMode;
+        if (isMatrixMode) {
+          btnToggleMatrix.style.background = 'rgba(30, 214, 91, 0.2)';
+          btnToggleMatrix.style.borderColor = 'var(--color-primary)';
+          btnToggleMatrix.style.color = 'var(--color-primary)';
+          singleDeviceView.style.display = 'none';
+          matrixView.style.display = 'block';
+        } else {
+          btnToggleMatrix.style.background = 'rgba(255,255,255,0.05)';
+          btnToggleMatrix.style.borderColor = 'rgba(255,255,255,0.1)';
+          btnToggleMatrix.style.color = '#fff';
+          singleDeviceView.style.display = 'flex';
+          matrixView.style.display = 'none';
+        }
+        if (currentPlayableHtml) previewPlayable(currentPlayableHtml);
+      });
+    }
+
+    const networkThrottleSelect = document.getElementById('networkThrottleSelect');
+    const throttlingOverlay = document.getElementById('throttlingOverlay');
+    const throttleStatusText = document.getElementById('throttleStatusText');
+    const throttleProgressBar = document.getElementById('throttleProgressBar');
+    const throttleSpeedInfo = document.getElementById('throttleSpeedInfo');
+    let throttleTimeout = null;
+
     function previewPlayable(html) {
       currentPlayableHtml = html;
       previewContainer.style.display = 'flex';
       
       const interceptor = `<script>
         (function() {
+          // 0. Force preserveDrawingBuffer for screenshots
+          const originalGetContext = HTMLCanvasElement.prototype.getContext;
+          HTMLCanvasElement.prototype.getContext = function(type, attributes) {
+            if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') {
+              attributes = attributes || {};
+              attributes.preserveDrawingBuffer = true;
+            }
+            return originalGetContext.call(this, type, attributes);
+          };
+
           // 1. Console Interceptor
           const originalError = console.error;
           const originalWarn = console.warn;
@@ -468,8 +580,59 @@
       <\/script>`;
       
       const injectHtml = html.replace('<head>', '<head>' + interceptor);
-      previewIframe.srcdoc = injectHtml;
-      updateDeviceSize();
+
+      if (isMatrixMode) {
+        document.getElementById('matrixIframe1').srcdoc = injectHtml;
+        document.getElementById('matrixIframe2').srcdoc = injectHtml;
+        document.getElementById('matrixIframe3').srcdoc = injectHtml;
+        document.getElementById('matrixIframe4').srcdoc = injectHtml;
+      } else {
+        // Handle Throttling
+        const throttleMode = networkThrottleSelect ? networkThrottleSelect.value : 'none';
+        clearTimeout(throttleTimeout);
+
+        if (throttleMode === 'offline') {
+          throttlingOverlay.style.display = 'flex';
+          throttleStatusText.textContent = '❌ No Connection (Offline)';
+          throttleProgressBar.style.width = '0%';
+          throttleSpeedInfo.textContent = 'Ad cannot load without internet connection';
+          previewIframe.srcdoc = '';
+          return;
+        }
+
+        if (throttleMode === 'fast3g' || throttleMode === 'slow3g') {
+          throttlingOverlay.style.display = 'flex';
+          const isFast = throttleMode === 'fast3g';
+          throttleStatusText.textContent = isFast ? '⚡ Simulating Fast 3G...' : '🐢 Simulating Slow 3G...';
+          throttleSpeedInfo.textContent = isFast ? 'Speed: 1.5 MB/s | RTT: 150ms' : 'Speed: 400 KB/s | RTT: 400ms';
+          
+          let progress = 0;
+          throttleProgressBar.style.width = '0%';
+          const stepInterval = isFast ? 50 : 100;
+          const stepIncrement = isFast ? 5 : 3;
+
+          function stepLoad() {
+            progress += stepIncrement + Math.random() * 5;
+            if (progress >= 100) {
+              throttleProgressBar.style.width = '100%';
+              throttleTimeout = setTimeout(() => {
+                throttlingOverlay.style.display = 'none';
+                previewIframe.srcdoc = injectHtml;
+              }, 200);
+            } else {
+              throttleProgressBar.style.width = progress + '%';
+              throttleTimeout = setTimeout(stepLoad, stepInterval);
+            }
+          }
+          stepLoad();
+        } else {
+          throttlingOverlay.style.display = 'none';
+          previewIframe.srcdoc = injectHtml;
+        }
+
+        updateDeviceSize();
+      }
+
       // Scroll to preview
       setTimeout(() => previewContainer.scrollIntoView({ behavior: 'smooth', block: 'start' }), 500);
     }
@@ -485,15 +648,75 @@
       }
     });
 
+    function createCompositeCanvas(gameCanvas) {
+      const mock = document.getElementById('deviceMock');
+      const w = mock.offsetWidth;
+      const h = mock.offsetHeight;
+      const cvs = document.createElement('canvas');
+      cvs.width = w;
+      cvs.height = h;
+      const ctx = cvs.getContext('2d');
+      
+      const drawFrame = () => {
+        ctx.clearRect(0, 0, w, h);
+        
+        // Draw phone background (black frame)
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.roundRect(0, 0, w, h, 46);
+        ctx.fill();
+        
+        // Draw Game Canvas inside padding (12px)
+        if (gameCanvas) {
+           ctx.save();
+           ctx.beginPath();
+           ctx.roundRect(12, 12, w - 24, h - 24, 34);
+           ctx.clip();
+           ctx.drawImage(gameCanvas, 12, 12, w - 24, h - 24);
+           ctx.restore();
+        }
+        
+        // Draw Notch
+        const notch = document.getElementById('deviceNotch');
+        if (notch.style.display !== 'none') {
+          const nw = parseInt(notch.style.width) || 0;
+          const nh = parseInt(notch.style.height) || 0;
+          let nx = 0, ny = 0;
+          
+          if (notch.style.top === '50%') ny = h/2 - nh/2;
+          else ny = parseInt(notch.style.top);
+          
+          if (notch.style.left === '50%') nx = w/2 - nw/2;
+          else nx = parseInt(notch.style.left);
+          
+          let radii = [20];
+          const val = deviceSelect.value;
+          if (val === '414x896' || val === '428x926') {
+             if (isLandscape) radii = [0, 20, 20, 0];
+             else radii = [0, 0, 20, 20];
+          }
+          
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          ctx.roundRect(nx, ny, nw, nh, radii);
+          ctx.fill();
+        }
+      };
+      
+      return { cvs, drawFrame };
+    }
+
     const btnScreenshot = document.getElementById('btnScreenshot');
     if (btnScreenshot) {
       btnScreenshot.addEventListener('click', () => {
         const iframeCanvas = previewIframe.contentDocument.querySelector('canvas');
         if (iframeCanvas) {
-          const url = iframeCanvas.toDataURL('image/png');
+          const comp = createCompositeCanvas(iframeCanvas);
+          comp.drawFrame();
+          const url = comp.cvs.toDataURL('image/png');
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'screenshot.png';
+          a.download = 'screenshot_mockup.png';
           a.click();
         } else {
           log('ERROR: Canvas not found inside iframe for screenshot.', 'error');
@@ -504,6 +727,7 @@
     const btnRecord = document.getElementById('btnRecord');
     let mediaRecorder;
     let recordedChunks = [];
+    let recordAnimFrame;
     if (btnRecord) {
       btnRecord.addEventListener('click', () => {
         const iframeCanvas = previewIframe.contentDocument.querySelector('canvas');
@@ -512,13 +736,22 @@
           return;
         }
         
-        const btnText = document.getElementById('btnRecordText');
         if (mediaRecorder && mediaRecorder.state === 'recording') {
           mediaRecorder.stop();
-          btnText.innerText = 'Record';
+          cancelAnimationFrame(recordAnimFrame);
           btnRecord.style.color = '#fff';
+          btnRecord.style.borderColor = 'rgba(255,255,255,0.1)';
+          btnRecord.style.background = 'rgba(255,255,255,0.05)';
         } else {
-          const stream = iframeCanvas.captureStream(30);
+          const comp = createCompositeCanvas(iframeCanvas);
+          
+          function renderLoop() {
+            comp.drawFrame();
+            recordAnimFrame = requestAnimationFrame(renderLoop);
+          }
+          renderLoop();
+          
+          const stream = comp.cvs.captureStream(30);
           const options = { mimeType: 'video/webm; codecs=vp9' };
           try {
             mediaRecorder = new MediaRecorder(stream, options);
@@ -537,8 +770,9 @@
             URL.revokeObjectURL(url);
           };
           mediaRecorder.start();
-          btnText.innerText = 'Stop';
           btnRecord.style.color = '#ff3333';
+          btnRecord.style.borderColor = '#ff3333';
+          btnRecord.style.background = 'rgba(255, 51, 51, 0.15)';
         }
       });
     }
@@ -603,7 +837,7 @@
         if (html.includes(searchTerms)) {
           log(`Скрипт клика найден: ${net.clickDesc}`, 'success');
         } else {
-          log(`ПРЕДУПРЕЖДЕНИЕ: Не найден вызов ${net.clickDesc}. Убедитесь, что логика клика реализована верно.`, 'warn', `Сеть требует специфичный вызов для обработки клика (CTA).\n\nОжидаемый вызов: ${net.clickDesc}\n\nУбедитесь, что он вызывается при нажатии на кнопку "Скачать/Играть".`);
+          log(`ПРЕДУПРЕЖДЕНИЕ: Не найден вызов ${net.clickDesc}. Убедитесь, что логика клика реализована верно.`, 'warn', `Сеть требует специфичный вызов для обработки клика (CTA).\n\nОжидаемый вызов: ${net.clickDesc}\n\nУбедитесь, что он вызывается при нажатии на кнопку "Скачать/Play".`);
         }
       }
 

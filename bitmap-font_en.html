@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Bitmap Font Generator | xGR3ENx Tools</title>
+  
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="font/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Montserrat:wght@800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/modern.css">
+  <link rel="stylesheet" href="css/tools.css">
+  <style>
+    .color-row { display: flex; gap: 0.5rem; align-items: center; }
+    .color-row input[type="color"] { width: 44px; height: 38px; border: none; padding: 0; cursor: pointer; background: transparent; }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header scrolled">
+    <div class="site-container">
+      <div class="nav-wrapper">
+        <a href="index.html" class="brand-logo-link" title="xGR3ENx Tools">
+          <img class="brand-logo-img" src="img/logo.svg" alt="xGR3ENx Logo" width="44" height="44">
+          <div class="brand-logo-text">
+            xGR3ENx
+            <span>TOOLS</span>
+          </div>
+        </a>
+        <ul class="nav-menu">
+          <li>
+            <div class="lang-switcher">
+              <button class="lang-btn" data-lang="ru" onclick="window.location.href='bitmap-font.html'">RU</button>
+              <button class="lang-btn active" data-lang="en" onclick="window.location.href='bitmap-font_en.html'">EN</button>
+            </div>
+          </li>
+          <li><a href="index.html" class="nav-item-link">HOME</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding-top: 100px;">
+    <section class="section-wrapper" style="padding-top: 2rem;">
+      <div class="site-container">
+        
+        <div class="tool-header">
+          <h1>BITMAP FONT GENERATOR</h1>
+          <p>BMFont raster generator & glyph metrics for Canvas. Eliminates heavy TTF fonts, saving 100-300 KB in Playables.</p>
+        </div>
+
+        <div class="tool-layout">
+          <!-- Settings Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">ПАРАМЕТРЫ</h3>
+            
+            <div class="form-group">
+              <label class="form-label">Charset</label>
+              <select id="charsetPreset" class="form-select" style="margin-bottom: 0.5rem;">
+                <option value="digits">Digits & Symbols only (0-9 + - = : % $)</option>
+                <option value="en_num" selected>Latin + Digits (A-Z, a-z, 0-9, symbols)</option>
+                <option value="ru_num">Cyrillic + Digits (А-Я, а-я, 0-9)</option>
+                <option value="custom">Custom Charset</option>
+              </select>
+              <textarea id="customChars" class="form-select" style="height: 70px; font-size: 0.8rem; font-family: monospace; resize: vertical;">0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!?:.,+-/*%$# </textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Font Family & Size</label>
+              <div style="display: grid; grid-template-columns: 1fr 90px; gap: 0.5rem;">
+                <select id="fontFamily" class="form-select">
+                  <option value="'Inter', sans-serif" selected>Inter</option>
+                  <option value="'Montserrat', sans-serif">Montserrat</option>
+                  <option value="Impact, sans-serif">Impact</option>
+                  <option value="'Press Start 2P', monospace">Pixel / Retro</option>
+                  <option value="'Courier New', monospace">Courier</option>
+                  <option value="Arial, sans-serif">Arial</option>
+                </select>
+                <input type="number" id="fontSize" class="form-input" value="36" min="12" max="96">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Glyph Fill</label>
+              <div class="color-row">
+                <input type="color" id="fillColor1" value="#ffd700" title="Цвет 1 (Верх)">
+                <input type="color" id="fillColor2" value="#ff8800" title="Цвет 2 (Низ)">
+                <span style="font-size: 0.8rem; color: var(--color-text-muted);">Gradient</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Stroke (px): <span id="strokeVal">3</span>px</label>
+              <div style="display: grid; grid-template-columns: 1fr 50px; gap: 0.5rem; align-items: center;">
+                <input type="range" id="strokeWidth" min="0" max="10" value="3">
+                <input type="color" id="strokeColor" value="#000000" style="width: 100%; height: 32px; border:none; background:transparent; cursor:pointer;">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Shadow (px): <span id="shadowVal">4</span>px</label>
+              <div style="display: grid; grid-template-columns: 1fr 50px; gap: 0.5rem; align-items: center;">
+                <input type="range" id="shadowBlur" min="0" max="15" value="4">
+                <input type="color" id="shadowColor" value="#ff8800" style="width: 100%; height: 32px; border:none; background:transparent; cursor:pointer;">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Glyph Padding (px)</label>
+              <input type="number" id="glyphPadding" class="form-input" value="4" min="1" max="20">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1.5rem;">
+              <button id="btnDownloadPng" class="btn-cyber btn-cyber-primary" style="width: 100%; padding: 0.6rem;">Download .PNG Atlas</button>
+              <button id="btnDownloadJson" class="btn-cyber btn-cyber-outline" style="width: 100%; padding: 0.6rem;">Download .JSON Metrics</button>
+            </div>
+          </aside>
+
+          <!-- Main Workspace -->
+          <div class="tool-main" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Live Text Test -->
+            <div style="background: rgba(0,0,0,0.6); border: 1px solid var(--color-primary); border-radius: 12px; padding: 1.2rem;">
+              <h4 style="color: var(--color-primary); margin: 0 0 0.8rem 0; font-family: var(--font-display);">INTERACTIVE FONT TEST (CANVAS)</h4>
+              <div style="display: flex; gap: 0.8rem; margin-bottom: 1rem;">
+                <input type="text" id="testTextInput" class="form-input" value="SCORE: 9999 +100$ LEVEL 1" placeholder="Введите любой текст...">
+              </div>
+              <div style="width: 100%; min-height: 90px; background: #05070a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 0.5rem;">
+                <canvas id="testTextCanvas" height="80" style="max-width: 100%;"></canvas>
+              </div>
+            </div>
+
+            <!-- Atlas Sheet Preview -->
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                <h4 style="color: #fff; margin: 0; font-family: var(--font-display);">BITMAP GLYPH ATLAS</h4>
+                <div id="atlasDimensionsLabel" style="font-family: monospace; font-size: 0.85rem; color: var(--color-primary);">512 x 512 px</div>
+              </div>
+              
+              <div style="width: 100%; min-height: 260px; background: #111; background-image: linear-gradient(45deg, #181a1f 25%, transparent 25%), linear-gradient(-45deg, #181a1f 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181a1f 75%), linear-gradient(-45deg, transparent 75%, #181a1f 75%); background-size: 16px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; overflow: auto; padding: 1rem;">
+                <canvas id="fontAtlasCanvas" style="box-shadow: 0 0 20px rgba(0,0,0,0.8); max-width: 100%; max-height: 380px;"></canvas>
+              </div>
+            </div>
+
+            <!-- Code snippet -->
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                <h4 style="color: var(--color-primary); margin: 0; font-family: var(--font-display);">JS FUNCTION FOR TEXT RENDERING:</h4>
+                <button id="btnCopyFunction" class="btn-cyber" style="padding: 4px 12px; font-size: 0.8rem;">Copy</button>
+              </div>
+              <textarea id="codeFunctionOutput" class="notranslate" translate="no" style="width: 100%; height: 160px; background: #080a0f; color: #a6e22e; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-family: monospace; font-size: 0.8rem; padding: 0.8rem; resize: vertical;" readonly></textarea>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const charsetPreset = document.getElementById('charsetPreset');
+    const customChars = document.getElementById('customChars');
+    const fontFamily = document.getElementById('fontFamily');
+    const fontSize = document.getElementById('fontSize');
+    const fillColor1 = document.getElementById('fillColor1');
+    const fillColor2 = document.getElementById('fillColor2');
+    const strokeWidth = document.getElementById('strokeWidth');
+    const strokeVal = document.getElementById('strokeVal');
+    const strokeColor = document.getElementById('strokeColor');
+    const shadowBlur = document.getElementById('shadowBlur');
+    const shadowVal = document.getElementById('shadowVal');
+    const shadowColor = document.getElementById('shadowColor');
+    const glyphPadding = document.getElementById('glyphPadding');
+    const testTextInput = document.getElementById('testTextInput');
+
+    const fontAtlasCanvas = document.getElementById('fontAtlasCanvas');
+    const atlasCtx = fontAtlasCanvas.getContext('2d');
+    const testTextCanvas = document.getElementById('testTextCanvas');
+    const testCtx = testTextCanvas.getContext('2d');
+    const atlasDimensionsLabel = document.getElementById('atlasDimensionsLabel');
+    const codeFunctionOutput = document.getElementById('codeFunctionOutput');
+
+    const btnDownloadPng = document.getElementById('btnDownloadPng');
+    const btnDownloadJson = document.getElementById('btnDownloadJson');
+    const btnCopyFunction = document.getElementById('btnCopyFunction');
+
+    let glyphsData = {};
+
+    charsetPreset.addEventListener('change', () => {
+      if (charsetPreset.value === 'digits') {
+        customChars.value = '0123456789+-=:.,%$ ';
+      } else if (charsetPreset.value === 'en_num') {
+        customChars.value = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!?:.,+-/*%$# ';
+      } else if (charsetPreset.value === 'ru_num') {
+        customChars.value = '0123456789АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя!?:.,+-/*%$# ';
+      }
+      generateFontAtlas();
+    });
+
+    function generateFontAtlas() {
+      strokeVal.textContent = strokeWidth.value;
+      shadowVal.textContent = shadowBlur.value;
+
+      const chars = Array.from(new Set(customChars.value.split('')));
+      const fSize = parseInt(fontSize.value) || 36;
+      const fFamily = fontFamily.value;
+      const sWidth = parseInt(strokeWidth.value) || 0;
+      const sColor = strokeColor.value;
+      const sBlur = parseInt(shadowBlur.value) || 0;
+      const shColor = shadowColor.value;
+      const pad = parseInt(glyphPadding.value) || 4;
+      const c1 = fillColor1.value;
+      const c2 = fillColor2.value;
+
+      const cellMargin = sWidth + sBlur + pad;
+      const charBoxes = [];
+
+      // Measure characters using temporary canvas
+      const tempCvs = document.createElement('canvas');
+      const tempCtx = tempCvs.getContext('2d');
+      tempCtx.font = `bold ${fSize}px ${fFamily}`;
+
+      chars.forEach(ch => {
+        const metrics = tempCtx.measureText(ch);
+        const w = Math.ceil(metrics.width) || Math.ceil(fSize / 2);
+        const h = Math.ceil(fSize * 1.2);
+        charBoxes.push({
+          char: ch,
+          w: w + cellMargin * 2,
+          h: h + cellMargin * 2,
+          charW: w,
+          charH: h
+        });
+      });
+
+      // Simple packing in rows
+      let atlasW = 512;
+      let currentX = 0;
+      let currentY = 0;
+      let rowHeight = 0;
+      const packed = [];
+
+      charBoxes.forEach(box => {
+        if (currentX + box.w > atlasW) {
+          currentX = 0;
+          currentY += rowHeight;
+          rowHeight = 0;
+        }
+        packed.push({
+          ...box,
+          x: currentX,
+          y: currentY
+        });
+        currentX += box.w;
+        rowHeight = Math.max(rowHeight, box.h);
+      });
+
+      const totalH = Math.pow(2, Math.ceil(Math.log2(currentY + rowHeight || 64)));
+      atlasW = Math.pow(2, Math.ceil(Math.log2(atlasW)));
+
+      fontAtlasCanvas.width = atlasW;
+      fontAtlasCanvas.height = totalH;
+      atlasDimensionsLabel.textContent = `${atlasW} x ${totalH} px`;
+
+      atlasCtx.clearRect(0, 0, atlasW, totalH);
+
+      glyphsData = {
+        meta: {
+          size: fSize,
+          family: fFamily,
+          atlasW: atlasW,
+          atlasH: totalH
+        },
+        chars: {}
+      };
+
+      // Render each glyph
+      packed.forEach(p => {
+        atlasCtx.save();
+        atlasCtx.font = `bold ${fSize}px ${fFamily}`;
+        atlasCtx.textBaseline = 'middle';
+        atlasCtx.textAlign = 'center';
+
+        const drawX = p.x + p.w / 2;
+        const drawY = p.y + p.h / 2;
+
+        // Shadow
+        if (sBlur > 0) {
+          atlasCtx.shadowColor = shColor;
+          atlasCtx.shadowBlur = sBlur;
+          atlasCtx.shadowOffsetX = 2;
+          atlasCtx.shadowOffsetY = 2;
+        }
+
+        // Gradient Fill
+        const grad = atlasCtx.createLinearGradient(0, drawY - p.charH/2, 0, drawY + p.charH/2);
+        grad.addColorStop(0, c1);
+        grad.addColorStop(1, c2);
+        atlasCtx.fillStyle = grad;
+
+        // Stroke
+        if (sWidth > 0) {
+          atlasCtx.strokeStyle = sColor;
+          atlasCtx.lineWidth = sWidth * 2;
+          atlasCtx.lineJoin = 'round';
+          atlasCtx.strokeText(p.char, drawX, drawY);
+        }
+
+        atlasCtx.fillText(p.char, drawX, drawY);
+        atlasCtx.restore();
+
+        glyphsData.chars[p.char] = {
+          x: p.x,
+          y: p.y,
+          w: p.w,
+          h: p.h,
+          advance: Math.max(p.w - cellMargin, 10)
+        };
+      });
+
+      renderTestText();
+      updateCodeSnippet();
+    }
+
+    function renderTestText() {
+      const text = testTextInput.value || '';
+      const pad = parseInt(glyphPadding.value) || 4;
+      
+      // Calculate test canvas width
+      let totalW = 20;
+      for (let ch of text) {
+        const g = glyphsData.chars[ch];
+        if (g) totalW += g.advance;
+        else totalW += 16;
+      }
+
+      testTextCanvas.width = Math.max(totalW + 20, 200);
+      testTextCanvas.height = (parseInt(fontSize.value) || 36) * 2;
+      testCtx.clearRect(0, 0, testTextCanvas.width, testTextCanvas.height);
+
+      let curX = 10;
+      const targetY = (testTextCanvas.height - (parseInt(fontSize.value) || 36) * 1.4) / 2;
+
+      for (let ch of text) {
+        const g = glyphsData.chars[ch];
+        if (g) {
+          testCtx.drawImage(fontAtlasCanvas, g.x, g.y, g.w, g.h, curX, targetY, g.w, g.h);
+          curX += g.advance;
+        } else {
+          curX += 16; // Space fallback
+        }
+      }
+    }
+
+    function updateCodeSnippet() {
+      const snippet = `// Универсальная функция отрисовки растрового текста (Bitmap Font)
+function drawBitmapText(ctx, atlasImg, fontData, text, x, y) {
+  let curX = x;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const g = fontData.chars[ch];
+    if (g) {
+      ctx.drawImage(atlasImg, g.x, g.y, g.w, g.h, curX, y, g.w, g.h);
+      curX += g.advance;
+    } else {
+      curX += 16; // пробел
+    }
+  }
+}
+
+// Использование:
+// const fontImg = new Image(); fontImg.src = "atlas.png";
+// drawBitmapText(ctx, fontImg, fontJson, "SCORE: 100", 50, 50);`;
+      codeFunctionOutput.value = snippet;
+    }
+
+    [customChars, fontFamily, fontSize, fillColor1, fillColor2, strokeWidth, strokeColor, shadowBlur, shadowColor, glyphPadding].forEach(el => {
+      el.addEventListener('input', generateFontAtlas);
+      el.addEventListener('change', generateFontAtlas);
+    });
+
+    testTextInput.addEventListener('input', renderTestText);
+
+    function downloadFile(dataUrl, filename) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      a.click();
+    }
+
+    btnDownloadPng.addEventListener('click', () => {
+      downloadFile(fontAtlasCanvas.toDataURL('image/png'), 'bitmap_font.png');
+    });
+
+    btnDownloadJson.addEventListener('click', () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(glyphsData, null, 2));
+      downloadFile(dataStr, 'bitmap_font.json');
+    });
+
+    btnCopyFunction.addEventListener('click', () => {
+      navigator.clipboard.writeText(codeFunctionOutput.value).then(() => {
+        btnCopyFunction.textContent = '✓ Скопировано!';
+        setTimeout(() => btnCopyFunction.textContent = 'Copy', 2000);
+      });
+    });
+
+    generateFontAtlas();
+  </script>
+
+</body>
+</html>

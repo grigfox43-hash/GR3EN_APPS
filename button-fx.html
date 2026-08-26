@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>CTA Button & FX Generator | xGR3ENx Tools</title>
+  
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="font/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/modern.css">
+  <link rel="stylesheet" href="css/tools.css">
+  <style>
+    .color-row { display: flex; gap: 0.5rem; align-items: center; }
+    .color-row input[type="color"] { width: 44px; height: 38px; border: none; padding: 0; cursor: pointer; background: transparent; }
+    
+    /* Live Button Animations */
+    @keyframes btn-pulse-glow {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 15px var(--btn-glow, rgba(30,214,91,0.5)); }
+      50% { transform: scale(1.06); box-shadow: 0 0 35px var(--btn-glow, rgba(30,214,91,0.9)); }
+    }
+
+    @keyframes btn-shimmer {
+      0% { transform: translateX(-150%) skewX(-25deg); }
+      100% { transform: translateX(250%) skewX(-25deg); }
+    }
+
+    @keyframes btn-wiggle {
+      0%, 100% { transform: rotate(0deg); }
+      15% { transform: rotate(-5deg) scale(1.03); }
+      30% { transform: rotate(5deg) scale(1.03); }
+      45% { transform: rotate(-3deg); }
+      60% { transform: rotate(3deg); }
+      75% { transform: rotate(0deg); }
+    }
+
+    @keyframes btn-heartbeat {
+      0%, 100% { transform: scale(1); }
+      14% { transform: scale(1.1); }
+      28% { transform: scale(1); }
+      42% { transform: scale(1.15); }
+      70% { transform: scale(1); }
+    }
+
+    @keyframes btn-gradient-move {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .anim-pulse { animation: btn-pulse-glow 1.6s infinite ease-in-out; }
+    .anim-wiggle { animation: btn-wiggle 2s infinite ease-in-out; }
+    .anim-heartbeat { animation: btn-heartbeat 1.8s infinite ease-in-out; }
+    .anim-gradient { background-size: 200% 200% !important; animation: btn-gradient-move 3s infinite linear; }
+
+    .shimmer-layer {
+      position: absolute;
+      top: 0; left: 0; width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+      animation: btn-shimmer 2.2s infinite ease-in-out;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header scrolled">
+    <div class="site-container">
+      <div class="nav-wrapper">
+        <a href="index.html" class="brand-logo-link" title="xGR3ENx Tools">
+          <img class="brand-logo-img" src="img/logo.svg" alt="xGR3ENx Logo" width="44" height="44">
+          <div class="brand-logo-text">
+            xGR3ENx
+            <span>TOOLS</span>
+          </div>
+        </a>
+        <ul class="nav-menu">
+          <li>
+            <div class="lang-switcher">
+              <button class="lang-btn active" data-lang="ru" onclick="window.location.href='button-fx.html'">RU</button>
+              <button class="lang-btn" data-lang="en" onclick="window.location.href='button-fx_en.html'">EN</button>
+            </div>
+          </li>
+          <li><a href="index.html" class="nav-item-link">НА ГЛАВНУЮ</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main style="padding-top: 100px;">
+    <section class="section-wrapper" style="padding-top: 2rem;">
+      <div class="site-container">
+        
+        <div class="tool-header">
+          <h1>CTA BUTTON & FX GENERATOR</h1>
+          <p>Визуальный генератор конвертящих рекламных кнопок для Playable Ads с готовыми анимациями (блик, пульс, 3D, свечение) и чистым HTML/CSS экспортом.</p>
+        </div>
+
+        <div class="tool-layout">
+          <!-- Settings Sidebar -->
+          <aside class="tool-sidebar">
+            <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">НАСТРОЙКИ</h3>
+            
+            <div class="form-group">
+              <label class="form-label">Анимационный пресет</label>
+              <select id="fxPresetSelect" class="form-select">
+                <option value="shimmer" selected>Скользящий блик (Shimmer)</option>
+                <option value="pulse">Неоновый пульс (Pulse Glow)</option>
+                <option value="wiggle">Покачивание (Wiggle / Attention)</option>
+                <option value="heartbeat">Ритмичный пульс (Heartbeat)</option>
+                <option value="bounce3d">3D Нажатие (3D Press & Shadow)</option>
+                <option value="gradient">Живой градиент (Gradient Wave)</option>
+                <option value="none">Без анимации (Static)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Текст кнопки</label>
+              <input type="text" id="btnTextInput" class="form-input" value="INSTALL NOW">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Иконка</label>
+              <select id="btnIconSelect" class="form-select">
+                <option value="arrow">Стрелка (➔)</option>
+                <option value="gamepad" selected>Геймпад (🎮)</option>
+                <option value="sparkle">Искра (✨)</option>
+                <option value="download">Скачать (⬇)</option>
+                <option value="fire">Огонь (🔥)</option>
+                <option value="none">Без иконки</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Цвета кнопки (Градиент)</label>
+              <div class="color-row">
+                <input type="color" id="btnColor1" value="#1ed65f">
+                <input type="color" id="btnColor2" value="#0fa843">
+                <input type="color" id="btnTextColor" value="#000000" title="Цвет текста">
+                <input type="color" id="btnGlowColor" value="#1ed65f" title="Цвет свечения">
+              </div>
+              <p style="font-size:0.75rem; color:var(--color-text-muted); margin-top:0.3rem;">Цвет 1 | Цвет 2 | Текст | Свечение</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Скругление углов: <span id="radiusVal">30</span>px</label>
+              <input type="range" id="radiusInput" min="0" max="50" value="30">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Размер шрифта: <span id="fontVal">18</span>px</label>
+              <input type="range" id="fontInput" min="12" max="32" value="18">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Отступы (Padding)</label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <input type="number" id="padVInput" class="form-input" value="16" min="6" max="40" placeholder="Вертикаль">
+                <input type="number" id="padHInput" class="form-input" value="36" min="10" max="80" placeholder="Горизонталь">
+              </div>
+            </div>
+
+            <button id="btnCopyCode" class="btn-cyber btn-cyber-primary" style="width: 100%; margin-top: 1rem; font-size: 1.1rem; padding: 0.6rem;">
+              Скопировать HTML + CSS
+            </button>
+          </aside>
+
+          <!-- Main Workspace -->
+          <div class="tool-main" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Interactive Stage -->
+            <div style="width: 100%; height: 340px; background: #05070a; background-image: radial-gradient(circle at center, #101924 0%, #05070a 80%); border: 1px solid rgba(30,214,91,0.2); border-radius: 16px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; box-shadow: inset 0 0 40px rgba(0,0,0,0.8);">
+              <div style="position: absolute; top: 12px; left: 16px; font-size: 0.8rem; color: var(--color-text-muted);">ИНТЕРАКТИВНЫЙ ПРЕДПРОСМОТР (Кликните по кнопке)</div>
+              
+              <!-- The Live Button Container -->
+              <div id="liveButtonWrapper" style="position: relative; display: inline-block;">
+                <button id="targetButton" style="position: relative; cursor: pointer; border: none; font-family: 'Inter', sans-serif; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; outline: none; user-select: none;">
+                  <span id="targetIcon">🎮</span>
+                  <span id="targetText">INSTALL NOW</span>
+                  <div id="targetShimmer" class="shimmer-layer"></div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Code Snippet Area -->
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                <h4 style="color: var(--color-primary); margin: 0; font-family: var(--font-display);">ГОТОВЫЙ КОД ДЛЯ PLAYABLE AD:</h4>
+                <button id="btnCopySnippetOnly" class="btn-cyber" style="padding: 4px 12px; font-size: 0.8rem;">Скопировать</button>
+              </div>
+              <textarea id="codeOutput" class="notranslate" translate="no" style="width: 100%; height: 180px; background: #080a0f; color: #a6e22e; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-family: monospace; font-size: 0.8rem; padding: 0.8rem; resize: vertical;" readonly></textarea>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const fxPresetSelect = document.getElementById('fxPresetSelect');
+    const btnTextInput = document.getElementById('btnTextInput');
+    const btnIconSelect = document.getElementById('btnIconSelect');
+    const btnColor1 = document.getElementById('btnColor1');
+    const btnColor2 = document.getElementById('btnColor2');
+    const btnTextColor = document.getElementById('btnTextColor');
+    const btnGlowColor = document.getElementById('btnGlowColor');
+    const radiusInput = document.getElementById('radiusInput');
+    const radiusVal = document.getElementById('radiusVal');
+    const fontInput = document.getElementById('fontInput');
+    const fontVal = document.getElementById('fontVal');
+    const padVInput = document.getElementById('padVInput');
+    const padHInput = document.getElementById('padHInput');
+
+    const targetButton = document.getElementById('targetButton');
+    const targetText = document.getElementById('targetText');
+    const targetIcon = document.getElementById('targetIcon');
+    const targetShimmer = document.getElementById('targetShimmer');
+    const codeOutput = document.getElementById('codeOutput');
+    const btnCopyCode = document.getElementById('btnCopyCode');
+    const btnCopySnippetOnly = document.getElementById('btnCopySnippetOnly');
+
+    const iconsMap = {
+      gamepad: '🎮',
+      arrow: '➔',
+      sparkle: '✨',
+      download: '⬇',
+      fire: '🔥',
+      none: ''
+    };
+
+    // Synthesized Click Sound (Web Audio)
+    function playClickSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+      } catch(e) {}
+    }
+
+    targetButton.addEventListener('click', () => {
+      playClickSound();
+      targetButton.style.transform = 'scale(0.94)';
+      setTimeout(() => {
+        const preset = fxPresetSelect.value;
+        if (preset === 'bounce3d') targetButton.style.transform = 'translateY(0)';
+        else targetButton.style.transform = 'none';
+      }, 120);
+    });
+
+    function updateButton() {
+      radiusVal.textContent = radiusInput.value;
+      fontVal.textContent = fontInput.value;
+
+      const text = btnTextInput.value || 'CLICK HERE';
+      const iconKey = btnIconSelect.value;
+      const c1 = btnColor1.value;
+      const c2 = btnColor2.value;
+      const txtCol = btnTextColor.value;
+      const glow = btnGlowColor.value;
+      const rad = radiusInput.value + 'px';
+      const fSize = fontInput.value + 'px';
+      const padV = padVInput.value + 'px';
+      const padH = padHInput.value + 'px';
+      const preset = fxPresetSelect.value;
+
+      targetText.textContent = text;
+      targetIcon.textContent = iconsMap[iconKey] || '';
+      targetIcon.style.display = iconKey === 'none' ? 'none' : 'inline-block';
+
+      // CSS Variables on target
+      targetButton.style.setProperty('--btn-glow', glow);
+      targetButton.style.background = `linear-gradient(135deg, ${c1}, ${c2})`;
+      targetButton.style.color = txtCol;
+      targetButton.style.borderRadius = rad;
+      targetButton.style.fontSize = fSize;
+      targetButton.style.padding = `${padV} ${padH}`;
+
+      // Reset animation classes
+      targetButton.className = '';
+      targetShimmer.style.display = 'none';
+      targetButton.style.boxShadow = 'none';
+
+      if (preset === 'shimmer') {
+        targetShimmer.style.display = 'block';
+        targetButton.style.boxShadow = `0 10px 25px -5px ${glow}88`;
+      } else if (preset === 'pulse') {
+        targetButton.classList.add('anim-pulse');
+      } else if (preset === 'wiggle') {
+        targetButton.classList.add('anim-wiggle');
+        targetButton.style.boxShadow = `0 8px 20px -3px ${glow}88`;
+      } else if (preset === 'heartbeat') {
+        targetButton.classList.add('anim-heartbeat');
+        targetButton.style.boxShadow = `0 10px 25px -5px ${glow}aa`;
+      } else if (preset === 'bounce3d') {
+        targetButton.style.boxShadow = `0 6px 0 ${c2}, 0 12px 25px rgba(0,0,0,0.5)`;
+        targetButton.style.transform = 'translateY(-3px)';
+      } else if (preset === 'gradient') {
+        targetButton.style.background = `linear-gradient(90deg, ${c1}, ${c2}, ${glow}, ${c1})`;
+        targetButton.classList.add('anim-gradient');
+        targetButton.style.boxShadow = `0 10px 25px -5px ${glow}88`;
+      } else {
+        targetButton.style.boxShadow = `0 6px 20px ${glow}66`;
+      }
+
+      generateExportCode(text, iconsMap[iconKey], c1, c2, txtCol, glow, rad, fSize, padV, padH, preset);
+    }
+
+    function generateExportCode(text, icon, c1, c2, txtCol, glow, rad, fSize, padV, padH, preset) {
+      let animCss = '';
+      let shimmerHtml = '';
+
+      if (preset === 'shimmer') {
+        shimmerHtml = '\n  <span class="cta-shimmer"></span>';
+        animCss = `
+@keyframes cta-shimmer-anim {
+  0% { transform: translateX(-150%) skewX(-25deg); }
+  100% { transform: translateX(250%) skewX(-25deg); }
+}
+.cta-btn {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px ${glow}88;
+}
+.cta-shimmer {
+  position: absolute;
+  top: 0; left: 0; width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: cta-shimmer-anim 2.2s infinite ease-in-out;
+  pointer-events: none;
+}`;
+      } else if (preset === 'pulse') {
+        animCss = `
+@keyframes cta-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 15px ${glow}88; }
+  50% { transform: scale(1.06); box-shadow: 0 0 35px ${glow}; }
+}
+.cta-btn {
+  animation: cta-pulse 1.6s infinite ease-in-out;
+}`;
+      } else if (preset === 'wiggle') {
+        animCss = `
+@keyframes cta-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(-5deg) scale(1.03); }
+  30% { transform: rotate(5deg) scale(1.03); }
+  45% { transform: rotate(-3deg); }
+  60% { transform: rotate(3deg); }
+  75% { transform: rotate(0deg); }
+}
+.cta-btn {
+  animation: cta-wiggle 2s infinite ease-in-out;
+  box-shadow: 0 8px 20px -3px ${glow}88;
+}`;
+      } else if (preset === 'bounce3d') {
+        animCss = `
+.cta-btn {
+  box-shadow: 0 6px 0 ${c2}, 0 12px 25px rgba(0,0,0,0.5);
+  transform: translateY(-3px);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.cta-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 ${c2}, 0 4px 10px rgba(0,0,0,0.5);
+}`;
+      }
+
+      const code = `<!-- CTA Button HTML -->
+<button class="cta-btn" onclick="handleClick()">
+  ${icon ? `<span>${icon}</span> ` : ''}<span>${text}</span>${shimmerHtml}
+</button>
+
+<!-- CTA Button CSS -->
+<style>
+.cta-btn {
+  cursor: pointer;
+  border: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, ${c1}, ${c2});
+  color: ${txtCol};
+  border-radius: ${rad};
+  font-size: ${fSize};
+  padding: ${padV} ${padH};
+  outline: none;
+  user-select: none;
+  transition: transform 0.15s;
+}
+.cta-btn:active {
+  transform: scale(0.95);
+}
+${animCss}
+</style>
+
+<script>
+function handleClick() {
+  // Вызов клика сети (MRAID / DAPI / Install)
+  if (typeof mraid !== 'undefined' && mraid.open) mraid.open();
+  else if (window.playableSDK) window.playableSDK.openAppStore();
+  else console.log('CTA Clicked');
+}
+<\/script>`;
+
+      codeOutput.value = code.trim();
+    }
+
+    [fxPresetSelect, btnTextInput, btnIconSelect, btnColor1, btnColor2, btnTextColor, btnGlowColor, radiusInput, fontInput, padVInput, padHInput].forEach(el => {
+      el.addEventListener('input', updateButton);
+      el.addEventListener('change', updateButton);
+    });
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const old = btn.textContent;
+        btn.textContent = '✓ Скопировано!';
+        setTimeout(() => btn.textContent = old, 2000);
+      });
+    }
+
+    btnCopyCode.addEventListener('click', () => copyToClipboard(codeOutput.value, btnCopyCode));
+    btnCopySnippetOnly.addEventListener('click', () => copyToClipboard(codeOutput.value, btnCopySnippetOnly));
+
+    updateButton();
+  </script>
+
+</body>
+</html>
