@@ -55,9 +55,14 @@
           <aside class="tool-sidebar">
             <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">ЗАГРУЗКА</h3>
             
-            <div id="dropzone" class="dropzone" style="min-height: 120px; padding: 1rem; border-width: 1px;">
-              <p style="font-size: 1rem;">Перетащите ZIP архив с проектом сюда</p>
+            <div id="dropzone" class="dropzone" style="min-height: 130px; padding: 1rem; border-width: 1px; text-align: center; cursor: pointer;">
+              <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">Перетащите <b>ZIP архив</b> или <b>папку</b> с проектом сюда</p>
+              <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.6rem;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); document.getElementById('zipInput').click();">Выбрать ZIP</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); document.getElementById('folderInput').click();">Выбрать папку</button>
+              </div>
               <input type="file" id="zipInput" accept=".zip" style="display:none;">
+              <input type="file" id="folderInput" webkitdirectory directory style="display:none;">
             </div>
             
             <div style="margin-top: 1.5rem; color: #fff;">
@@ -146,11 +151,11 @@
   <script>
     const dropzone = document.getElementById('dropzone');
     const zipInput = document.getElementById('zipInput');
+    const folderInput = document.getElementById('folderInput');
     const btnProcess = document.getElementById('btnProcess');
     const downloadLink = document.getElementById('downloadLink');
     const logBox = document.getElementById('logBox');
 
-    let loadedZip = null;
     let fileMap = {};
     let rawFileMap = {};
     let basePrefix = '';
@@ -164,32 +169,169 @@
       logBox.scrollTop = logBox.scrollHeight;
     }
 
-    dropzone.addEventListener('click', () => zipInput.click());
     dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
     dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-    dropzone.addEventListener('drop', (e) => {
+    dropzone.addEventListener('drop', async (e) => {
       e.preventDefault();
       dropzone.classList.remove('dragover');
-      if (e.dataTransfer.files.length) handleZip(e.dataTransfer.files[0]);
+
+      const items = e.dataTransfer.items;
+      if (items && items.length) {
+        const firstEntry = items[0].webkitGetAsEntry ? items[0].webkitGetAsEntry() : null;
+        if (firstEntry && firstEntry.isDirectory) {
+          logBox.innerHTML = '';
+          log(`Чтение папки: ${firstEntry.name}...`, 'info');
+          const scannedFiles = await readDirectoryEntry(firstEntry, firstEntry.name);
+          return processRawFiles(scannedFiles);
+        }
+      }
+
+      if (e.dataTransfer.files.length) {
+        const first = e.dataTransfer.files[0];
+        if (first.name.toLowerCase().endsWith('.zip')) {
+          handleZip(first);
+        } else {
+          // Multiple dropped files or single file
+          const scanned = [];
+          for (const f of e.dataTransfer.files) {
+            const rel = f.webkitRelativePath || f.name;
+            scanned.push({ path: rel, file: f });
+          }
+          processRawFiles(scanned);
+        }
+      }
     });
+
     zipInput.addEventListener('change', (e) => {
       if (e.target.files.length) handleZip(e.target.files[0]);
     });
 
-    async function handleZip(file) {
-      if (!file.name.endsWith('.zip')) {
-        return log('ОШИБКА: Пожалуйста, загрузите ZIP архив.', 'error');
+    folderInput.addEventListener('change', (e) => {
+      if (e.target.files.length) {
+        const scanned = [];
+        for (const f of e.target.files) {
+          scanned.push({ path: f.webkitRelativePath || f.name, file: f });
+        }
+        processRawFiles(scanned);
       }
-      
+    });
+
+    async function readDirectoryEntry(dirEntry, currentPath = '') {
+      const dirReader = dirEntry.createReader();
+      const entries = await new Promise((resolve, reject) => {
+        const results = [];
+        function readNext() {
+          dirReader.readEntries(batch => {
+            if (!batch.length) resolve(results);
+            else {
+              results.push(...batch);
+              readNext();
+            }
+          }, reject);
+        }
+        readNext();
+      });
+
+      const files = [];
+      for (const entry of entries) {
+        const fullPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+        if (entry.isFile) {
+          const file = await new Promise((res, rej) => entry.file(res, rej));
+          files.push({ path: fullPath, file });
+        } else if (entry.isDirectory) {
+          const subFiles = await readDirectoryEntry(entry, fullPath);
+          files.push(...subFiles);
+        }
+      }
+      return files;
+    }
+
+    async function processRawFiles(scannedFiles) {
+      logBox.innerHTML = '';
+      log(`Обработка ${scannedFiles.length} файлов из папки...`, 'info');
+      try {
+        fileMap = {};
+        rawFileMap = {};
+
+        const paths = scannedFiles.map(s => s.path);
+        let indexEntryName = paths.find(f => f.toLowerCase() === 'index.html' || f.toLowerCase().endsWith('/index.html'));
+        if (!indexEntryName) {
+          indexEntryName = paths.find(f => f.toLowerCase().endsWith('.html'));
+        }
+
+        if (!indexEntryName) {
+          return log('ОШИБКА: HTML файл не найден!', 'error');
+        }
+
+        basePrefix = '';
+        if (indexEntryName.includes('/')) {
+          basePrefix = indexEntryName.substring(0, indexEntryName.lastIndexOf('/') + 1);
+          log(`Обнаружена корневая папка проекта: ${basePrefix}`, 'info');
+        }
+
+        for (const item of scannedFiles) {
+          let cleanName = item.path.replace(/\\/g, '/').replace(/^\.?\/+/, '');
+          let relativeName = cleanName;
+          if (basePrefix && cleanName.startsWith(basePrefix)) {
+            relativeName = cleanName.substring(basePrefix.length);
+          }
+          const baseName = relativeName.split('/').pop();
+          if (!rawFileMap[baseName]) rawFileMap[baseName] = [];
+          rawFileMap[baseName].push(relativeName);
+
+          if (relativeName.match(/\.(png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|otf|mp3|wav|ogg|m4a|aac|mp4|webm)$/i)) {
+            const dataUri = await new Promise((res, rej) => {
+              const reader = new FileReader();
+              reader.onload = () => res(reader.result);
+              reader.onerror = rej;
+              reader.readAsDataURL(item.file);
+            });
+
+            fileMap[relativeName] = dataUri;
+            fileMap[cleanName] = dataUri;
+            fileMap[relativeName.toLowerCase()] = dataUri;
+            fileMap[cleanName.toLowerCase()] = dataUri;
+            fileMap[baseName] = dataUri;
+            fileMap[baseName.toLowerCase()] = dataUri;
+
+            const parts = relativeName.split('/');
+            for (let i = 1; i < parts.length; i++) {
+              const subSlice = parts.slice(i).join('/');
+              if (!fileMap[subSlice]) fileMap[subSlice] = dataUri;
+              if (!fileMap[subSlice.toLowerCase()]) fileMap[subSlice.toLowerCase()] = dataUri;
+            }
+            log(`🖼️ Найдено изображение/ассет: ${relativeName}`, 'info');
+          } else {
+            const text = await item.file.text();
+            fileMap[relativeName] = text;
+            fileMap[cleanName] = text;
+            fileMap[baseName] = text;
+            if (item.path === indexEntryName || cleanName === indexEntryName || relativeName === indexEntryName || relativeName.toLowerCase() === 'index.html') {
+              fileMap['index.html'] = text;
+            }
+            log(`📄 Найден текстовый файл: ${relativeName}`, 'info');
+          }
+        }
+
+        const assetsCount = Object.keys(fileMap).length;
+        log(`Успешно загружено ${assetsCount} файлов. index.html готов к сборке.`, 'success');
+        btnProcess.style.display = 'inline-flex';
+        downloadLink.style.display = 'none';
+        document.getElementById('sizeBreakdownCard').style.display = 'none';
+      } catch (e) {
+        log(`ОШИБКА: ${e.message}`, 'error');
+      }
+    }
+
+    async function handleZip(file) {
       logBox.innerHTML = '';
       log(`Чтение архива: ${file.name}...`, 'info');
       
       try {
-        loadedZip = await JSZip.loadAsync(file);
+        const loadedZip = await JSZip.loadAsync(file);
         fileMap = {};
         rawFileMap = {};
         
-        // 1. Locate index.html inside the ZIP (even if in a subfolder)
         const entries = Object.keys(loadedZip.files).filter(f => !loadedZip.files[f].dir);
         let indexEntryName = entries.find(f => f.toLowerCase() === 'index.html' || f.toLowerCase().endsWith('/index.html'));
         
@@ -211,8 +353,6 @@
           if (zipEntry.dir) continue;
           
           let cleanName = filename.replace(/\\/g, '/').replace(/^\.?\/+/, '');
-          
-          // Strip basePrefix if present
           let relativeName = cleanName;
           if (basePrefix && cleanName.startsWith(basePrefix)) {
             relativeName = cleanName.substring(basePrefix.length);
@@ -227,7 +367,6 @@
             const mime = getMimeType(relativeName);
             const dataUri = `data:${mime};base64,${base64}`;
             
-            // Register all possible relative variations & suffixes
             fileMap[relativeName] = dataUri;
             fileMap[cleanName] = dataUri;
             fileMap[relativeName.toLowerCase()] = dataUri;
@@ -235,18 +374,22 @@
             fileMap[baseName] = dataUri;
             fileMap[baseName.toLowerCase()] = dataUri;
 
-            // Register sub-path slices (e.g. images/bg.png from assets/images/bg.png)
             const parts = relativeName.split('/');
             for (let i = 1; i < parts.length; i++) {
               const subSlice = parts.slice(i).join('/');
               if (!fileMap[subSlice]) fileMap[subSlice] = dataUri;
               if (!fileMap[subSlice.toLowerCase()]) fileMap[subSlice.toLowerCase()] = dataUri;
             }
+            log(`🖼️ Найдено изображение/ассет: ${relativeName}`, 'info');
           } else {
             const text = await zipEntry.async("string");
             fileMap[relativeName] = text;
             fileMap[cleanName] = text;
             fileMap[baseName] = text;
+            if (filename === indexEntryName || cleanName === indexEntryName || relativeName === indexEntryName || relativeName.toLowerCase() === 'index.html') {
+              fileMap['index.html'] = text;
+            }
+            log(`📄 Найден текстовый файл: ${relativeName}`, 'info');
           }
         }
 
@@ -434,7 +577,17 @@
         return '<' + 'sc' + 'ript>\n' + inlined + '\n<' + '/sc' + 'ript>';
       });
 
-      // 7. Optional Minification (Fast & safe, doesn't lock event loop)
+      // 7. Inject CreateJS / PreloadJS Data URI compatibility adapter
+      const createJsAdapter = '<' + 'sc' + 'ript>\n(function(){if(typeof window!=="undefined"){function patchCjs(){if(window.createjs&&createjs.LoadQueue&&!createjs.LoadQueue._dataPatched){createjs.LoadQueue._dataPatched=true;var oldM=createjs.LoadQueue.prototype.loadManifest;createjs.LoadQueue.prototype.loadManifest=function(m,n,b){if(Array.isArray(m)){m.forEach(function(i){if(i&&i.src&&typeof i.src==="string"){if(i.src.indexOf("data:image")===0)i.type="image";else if(i.src.indexOf("data:audio")===0)i.type="sound";}});}return oldM.apply(this,arguments);};var oldF=createjs.LoadQueue.prototype.loadFile;createjs.LoadQueue.prototype.loadFile=function(f,n,b){if(f&&typeof f==="object"&&f.src&&typeof f.src==="string"){if(f.src.indexOf("data:image")===0)f.type="image";else if(f.src.indexOf("data:audio")===0)f.type="sound";}return oldF.apply(this,arguments);};}}patchCjs();document.addEventListener("DOMContentLoaded",patchCjs);window.addEventListener("load",patchCjs);}})();\n<' + '/sc' + 'ript>';
+      if (html.includes('</head>')) {
+        html = html.replace('</head>', createJsAdapter + '\n</head>');
+      } else if (html.includes('<body')) {
+        html = html.replace(/<body\b[^>]*>/i, '$&\n' + createJsAdapter);
+      } else {
+        html = createJsAdapter + '\n' + html;
+      }
+
+      // 8. Optional Minification (Fast & safe, doesn't lock event loop)
       if (document.getElementById('minifyCheck').checked) {
         log('Применяю ультра-сжатие (Minify)...', 'info');
         const origLen = html.length;
