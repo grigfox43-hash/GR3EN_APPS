@@ -456,7 +456,7 @@
       return null;
     }
 
-    function inlineSingleProject(project, shouldMinify) {
+    function inlineProject(project, shouldMinify) {
       const fileMap = project.fileMap;
       let html = fileMap['index.html'];
       if (!html) {
