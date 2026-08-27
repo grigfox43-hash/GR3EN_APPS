@@ -152,6 +152,8 @@
 
     let loadedZip = null;
     let fileMap = {};
+    let rawFileMap = {};
+    let basePrefix = '';
 
     function log(msg, type = 'info') {
       const icons = { info: '>', success: '✓', warn: '⚠', error: '✕' };
@@ -185,34 +187,59 @@
       try {
         loadedZip = await JSZip.loadAsync(file);
         fileMap = {};
-        let hasIndex = false;
+        rawFileMap = {};
+        
+        // 1. Locate index.html inside the ZIP (even if in a subfolder)
+        const entries = Object.keys(loadedZip.files).filter(f => !loadedZip.files[f].dir);
+        let indexEntryName = entries.find(f => f.toLowerCase() === 'index.html' || f.toLowerCase().endsWith('/index.html'));
+        
+        if (!indexEntryName) {
+          indexEntryName = entries.find(f => f.toLowerCase().endsWith('.html'));
+        }
+
+        if (!indexEntryName) {
+          return log('ОШИБКА: index.html не найден внутри архива!', 'error');
+        }
+
+        basePrefix = '';
+        if (indexEntryName.includes('/')) {
+          basePrefix = indexEntryName.substring(0, indexEntryName.lastIndexOf('/') + 1);
+          log(`Обнаружена корневая папка проекта в архиве: ${basePrefix}`, 'info');
+        }
 
         for (let [filename, zipEntry] of Object.entries(loadedZip.files)) {
           if (zipEntry.dir) continue;
           
-          // Normalize paths
-          const cleanName = filename.replace(/^\//, '').replace(/\\/g, '/');
+          let cleanName = filename.replace(/^\//, '').replace(/\\/g, '/');
           
-          if (cleanName === 'index.html') hasIndex = true;
-          
-          // Pre-load content
-          if (cleanName.match(/\.(png|jpe?g|gif|svg|webp|woff2?|ttf|mp3|wav|ogg)$/i)) {
+          // Strip basePrefix if present
+          let relativeName = cleanName;
+          if (basePrefix && cleanName.startsWith(basePrefix)) {
+            relativeName = cleanName.substring(basePrefix.length);
+          }
+
+          const baseName = relativeName.split('/').pop();
+          if (!rawFileMap[baseName]) rawFileMap[baseName] = [];
+          rawFileMap[baseName].push(relativeName);
+
+          if (relativeName.match(/\.(png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|otf|mp3|wav|ogg|m4a|aac|mp4|webm)$/i)) {
             const base64 = await zipEntry.async("base64");
-            const mime = getMimeType(cleanName);
-            fileMap[cleanName] = `data:${mime};base64,${base64}`;
+            const mime = getMimeType(relativeName);
+            const dataUri = `data:${mime};base64,${base64}`;
+            fileMap[relativeName] = dataUri;
+            fileMap[cleanName] = dataUri;
           } else {
             const text = await zipEntry.async("string");
+            fileMap[relativeName] = text;
             fileMap[cleanName] = text;
           }
         }
 
-        if (!hasIndex) {
-          log('ОШИБКА: index.html не найден в корне архива!', 'error');
-        } else {
-          log(`Загружено ${Object.keys(fileMap).length} файлов. Готов к сборке.`, 'success');
-          btnProcess.style.display = 'inline-flex';
-          downloadLink.style.display = 'none';
-        }
+        const assetsCount = Object.keys(fileMap).length;
+        log(`Успешно загружено ${assetsCount} файлов. index.html найден. Готов к сборке.`, 'success');
+        btnProcess.style.display = 'inline-flex';
+        downloadLink.style.display = 'none';
+        document.getElementById('sizeBreakdownCard').style.display = 'none';
       } catch (e) {
         log(`ОШИБКА: ${e.message}`, 'error');
       }
@@ -223,87 +250,239 @@
       const mimes = {
         'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
         'gif': 'image/gif', 'svg': 'image/svg+xml', 'webp': 'image/webp',
-        'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'ogg': 'audio/ogg',
-        'woff': 'font/woff', 'woff2': 'font/woff2', 'ttf': 'font/ttf'
+        'ico': 'image/x-icon',
+        'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'ogg': 'audio/ogg', 'm4a': 'audio/mp4', 'aac': 'audio/aac',
+        'woff': 'font/woff', 'woff2': 'font/woff2', 'ttf': 'font/ttf', 'otf': 'font/otf', 'eot': 'application/vnd.ms-fontobject',
+        'mp4': 'video/mp4', 'webm': 'video/webm'
       };
       return mimes[ext] || 'application/octet-stream';
     }
 
+    // Smart path resolver that handles relative paths, ../, ./, quotes, query params, etc.
+    function resolveAsset(refPath, contextDir = '') {
+      if (!refPath || typeof refPath !== 'string') return null;
+      if (refPath.startsWith('data:') || refPath.startsWith('http://') || refPath.startsWith('https://') || refPath.startsWith('blob:') || refPath.startsWith('#') || refPath.startsWith('javascript:')) {
+        return null;
+      }
+
+      let clean = refPath.split('?')[0].split('#')[0].trim().replace(/^['"]|['"]$/g, '');
+      try { clean = decodeURIComponent(clean); } catch(e){}
+      clean = clean.replace(/\\/g, '/');
+
+      // 1. Direct match
+      if (fileMap[clean]) return fileMap[clean];
+
+      // 2. Remove leading ./ or /
+      const noDotSlash = clean.replace(/^\.?\//, '');
+      if (fileMap[noDotSlash]) return fileMap[noDotSlash];
+
+      // 3. Resolve relative to contextDir (e.g. if inside css/style.css)
+      if (contextDir) {
+        let combined = contextDir.replace(/\/?$/, '/') + clean;
+        const parts = combined.split('/');
+        const resolvedParts = [];
+        for (const p of parts) {
+          if (p === '' || p === '.') continue;
+          if (p === '..') {
+            if (resolvedParts.length > 0) resolvedParts.pop();
+          } else {
+            resolvedParts.push(p);
+          }
+        }
+        const resolvedPath = resolvedParts.join('/');
+        if (fileMap[resolvedPath]) return fileMap[resolvedPath];
+      }
+
+      // 4. Case-insensitive lookup
+      const lowerClean = noDotSlash.toLowerCase();
+      for (const k of Object.keys(fileMap)) {
+        if (k.toLowerCase() === lowerClean) return fileMap[k];
+      }
+
+      // 5. Basename fallback (if filename is unique in archive)
+      const base = clean.split('/').pop();
+      if (rawFileMap[base] && rawFileMap[base].length === 1) {
+        const fullRel = rawFileMap[base][0];
+        if (fileMap[fullRel]) return fileMap[fullRel];
+      }
+
+      return null;
+    }
+
+    // Helper to inline all url(...) inside a CSS string
+    function inlineCssUrls(cssContent, contextDir = '') {
+      return cssContent.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi, (match, quote, url) => {
+        const dataUri = resolveAsset(url, contextDir);
+        if (dataUri) {
+          log(`🎨 Заинлайнен ресурс в CSS: ${url.split('?')[0]}`, 'success');
+          return `url('${dataUri}')`;
+        }
+        return match;
+      });
+    }
+
+    // Helper to inline all known asset string paths inside a JS string
+    function inlineJsAssetStrings(jsContent, contextDir = '') {
+      const assetKeys = Object.keys(fileMap).filter(k => k.match(/\.(png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf)$/i));
+      let inlinedJs = jsContent;
+
+      assetKeys.forEach(assetKey => {
+        const dataUri = fileMap[assetKey];
+        if (!dataUri || !dataUri.startsWith('data:')) return;
+
+        const base = assetKey.split('/').pop();
+        const variants = new Set([
+          assetKey,
+          './' + assetKey,
+          '/' + assetKey,
+          base,
+          './' + base
+        ]);
+
+        variants.forEach(variant => {
+          const escapedVariant = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const strRegex = new RegExp(`(["'\`])${escapedVariant}(?:\\?[^"'\`]*)?\\1`, 'g');
+          
+          if (strRegex.test(inlinedJs)) {
+            log(`📜 Заинлайнена картинка/ассет в JS: ${variant}`, 'success');
+            inlinedJs = inlinedJs.replace(strRegex, `$1${dataUri}$1`);
+          }
+        });
+      });
+
+      return inlinedJs;
+    }
+
     btnProcess.addEventListener('click', () => {
-      if (!fileMap['index.html']) return;
-      
-      log('Начинаю процесс сборки (Inlining)...', 'info');
       let html = fileMap['index.html'];
+      if (!html) {
+        const fallback = Object.keys(fileMap).find(k => k.endsWith('index.html') || k.endsWith('.html'));
+        if (fallback) html = fileMap[fallback];
+      }
 
-      // Inline CSS
-      // <link rel="stylesheet" href="css/style.css">
-      html = html.replace(/<link[^>]+rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>/gi, (match, href) => {
-        const cleanHref = href.replace(/^\.\//, ''); // remove ./
-        if (fileMap[cleanHref]) {
-          log(`Заинлайнен CSS: ${cleanHref}`, 'success');
-          return `<style>\n${fileMap[cleanHref]}\n</style>`;
+      if (!html) return log('ОШИБКА: index.html не найден!', 'error');
+      
+      log('Начинаю процесс полной сборки (Inlining)...', 'info');
+
+      // 1. Inline CSS Files (<link rel="stylesheet" href="...">)
+      html = html.replace(/<link[^>]+rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>|<link[^>]+href=["']([^"']+)["'][^>]*rel=["']stylesheet["'][^>]*>/gi, (match, href1, href2) => {
+        const href = href1 || href2;
+        const cssContent = resolveAsset(href, '');
+        if (cssContent && typeof cssContent === 'string' && !cssContent.startsWith('data:')) {
+          const cssDir = href.includes('/') ? href.substring(0, href.lastIndexOf('/') + 1) : '';
+          const inlinedCss = inlineCssUrls(cssContent, cssDir);
+          log(`Заинлайнен файл CSS: ${href}`, 'success');
+          return `<style>\n/* Inlined: ${href} */\n${inlinedCss}\n</style>`;
         }
-        log(`ПРЕДУПРЕЖДЕНИЕ: CSS файл не найден в архиве: ${cleanHref}`, 'warn');
+        log(`ПРЕДУПРЕЖДЕНИЕ: CSS файл не найден в архиве: ${href}`, 'warn');
         return match;
       });
 
-      // Inline JS
-      html = html.replace(/<script[^>]+src=["']([^"']+)["'][^>]*>[\s\S]*?<\x2Fscript>/gi, (match, src) => {
-        const cleanSrc = src.replace(/^\.\//, '');
-        if (fileMap[cleanSrc]) {
-          log(`Заинлайнен JS: ${cleanSrc}`, 'success');
-          return `<script>\n${fileMap[cleanSrc]}\n<` + `/script>`;
+      // 2. Inline CSS inside existing <style> tags and inline style attributes
+      html = html.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (match, cssBody) => {
+        const inlined = inlineCssUrls(cssBody, '');
+        return `<style>${inlined}</style>`;
+      });
+
+      html = html.replace(/style=["']([^"']+)["']/gi, (match, styleVal) => {
+        const inlined = inlineCssUrls(styleVal, '');
+        return `style="${inlined}"`;
+      });
+
+      // 3. Inline HTML image/media tags (<img src="...">, <source srcset="...">, <link icon>, SVG <image>)
+      html = html.replace(/(<img\b[^>]*\bsrc=["'])([^"']+)(["'][^>]*>)/gi, (match, prefix, src, suffix) => {
+        const dataUri = resolveAsset(src, '');
+        if (dataUri) {
+          log(`🖼️ Заинлайнена картинка <img>: ${src.split('?')[0]}`, 'success');
+          return `${prefix}${dataUri}${suffix}`;
         }
-        log(`ПРЕДУПРЕЖДЕНИЕ: JS файл не найден в архиве: ${cleanSrc}`, 'warn');
+        log(`ПРЕДУПРЕЖДЕНИЕ: Картинка <img> не найдена: ${src}`, 'warn');
         return match;
       });
 
-      // Inline Images in HTML tags
-      // <img src="img/logo.svg">
-      html = html.replace(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
-        if (src.startsWith('data:')) return match;
-        const cleanSrc = src.replace(/^\.\//, '');
-        if (fileMap[cleanSrc]) {
-          log(`Заинлайнена картинка (HTML): ${cleanSrc}`, 'success');
-          return match.replace(src, fileMap[cleanSrc]);
+      html = html.replace(/\bsrcset=["']([^"']+)["']/gi, (match, srcsetVal) => {
+        const parts = srcsetVal.split(',').map(part => {
+          const trimmed = part.trim();
+          const tokens = trimmed.split(/\s+/);
+          const url = tokens[0];
+          const descriptor = tokens.slice(1).join(' ');
+          const dataUri = resolveAsset(url, '');
+          if (dataUri) {
+            log(`🖼️ Заинлайнен ассет srcset: ${url}`, 'success');
+            return dataUri + (descriptor ? ' ' + descriptor : '');
+          }
+          return part;
+        });
+        return `srcset="${parts.join(', ')}"`;
+      });
+
+      html = html.replace(/(<input\b[^>]*\bsrc=["'])([^"']+)(["'][^>]*>)/gi, (match, prefix, src, suffix) => {
+        const dataUri = resolveAsset(src, '');
+        if (dataUri) {
+          log(`🖼️ Заинлайнена картинка <input src>: ${src}`, 'success');
+          return `${prefix}${dataUri}${suffix}`;
         }
-        log(`ПРЕДУПРЕЖДЕНИЕ: Картинка не найдена в архиве: ${cleanSrc}`, 'warn');
         return match;
       });
 
-      // Simple attempt to inline CSS backgrounds url('img.png') - highly simplified
-      html = html.replace(/url\(['"]?([^'"\)]+)['"]?\)/gi, (match, url) => {
-        if (url.startsWith('data:')) return match;
-        const cleanUrl = url.replace(/^\.\//, '');
-        if (fileMap[cleanUrl]) {
-          log(`Заинлайнен ресурс (CSS/JS url): ${cleanUrl}`, 'success');
-          return `url('${fileMap[cleanUrl]}')`;
+      html = html.replace(/(<(?:svg:)?image\b[^>]*\b(?:href|xlink:href)=["'])([^"']+)(["'][^>]*>)/gi, (match, prefix, href, suffix) => {
+        const dataUri = resolveAsset(href, '');
+        if (dataUri) {
+          log(`🖼️ Заинлайнена SVG картинка: ${href}`, 'success');
+          return `${prefix}${dataUri}${suffix}`;
         }
         return match;
       });
 
+      html = html.replace(/(<link\b[^>]*\bhref=["'])([^"']+)(["'][^>]*\brel=["'](?:shortcut )?icon["'][^>]*>)/gi, (match, prefix, href, suffix) => {
+        const dataUri = resolveAsset(href, '');
+        if (dataUri) return `${prefix}${dataUri}${suffix}`;
+        return match;
+      });
+
+      // 4. Inline JS Files
+      const scriptSrcRegex = new RegExp('<script[^>]+src=["\']([^"\']+)["\'][^>]*>[\\s\\S]*?<\\/' + 'script>', 'gi');
+      html = html.replace(scriptSrcRegex, (match, src) => {
+        const jsContent = resolveAsset(src, '');
+        if (jsContent && typeof jsContent === 'string' && !jsContent.startsWith('data:')) {
+          const jsDir = src.includes('/') ? src.substring(0, src.lastIndexOf('/') + 1) : '';
+          const inlinedJs = inlineJsAssetStrings(jsContent, jsDir);
+          log(`Заинлайнен файл JS: ${src}`, 'success');
+          return '<' + 'script>\n/* Inlined: ' + src + ' */\n' + inlinedJs + '\n<' + '/script>';
+        }
+        log(`ПРЕДУПРЕЖДЕНИЕ: JS файл не найден в архиве: ${src}`, 'warn');
+        return match;
+      });
+
+      // 5. Inline asset strings inside existing inline tags
+      const inlineScriptRegex = new RegExp('<script\\b(?![^>]*\\bsrc=)[^>]*>([\\s\\S]*?)<\\/' + 'script>', 'gi');
+      html = html.replace(inlineScriptRegex, (match, jsBody) => {
+        const inlined = inlineJsAssetStrings(jsBody, '');
+        return '<' + 'script>\n' + inlined + '\n<' + '/script>';
+      });
+
+      // 6. Optional Minification
       if (document.getElementById('minifyCheck').checked) {
         log('Applying ultra-minify...', 'info');
-        // Simple regex minification
         const origLen = html.length;
-        html = html.replace(/<!--[\s\S]*?-->/g, ''); // remove comments
-        html = html.replace(/\/\*[\s\S]*?\*\//g, ''); // remove CSS comments
-        html = html.replace(/\s+/g, ' '); // collapse whitespace
-        html = html.replace(/>\s+</g, '><'); // remove whitespace between tags
-        html = html.replace(/;\s+/g, ';'); // remove whitespace after semi-colons
-        html = html.replace(/\{\s+/g, '{').replace(/\}\s+/g, '}'); // remove whitespace around braces
+        html = html.replace(/<!--[\s\S]*?-->/g, '');
+        html = html.replace(/\/\*[\s\S]*?\*\//g, '');
+        html = html.replace(/\s+/g, ' ');
+        html = html.replace(/>\s+</g, '><');
+        html = html.replace(/;\s+/g, ';');
+        html = html.replace(/\{\s+/g, '{').replace(/\}\s+/g, '}');
         const newLen = html.length;
         log(`Minification complete! Saved: ${((origLen - newLen)/1024).toFixed(2)} KB`, 'success');
       }
 
-      // Calculate Size Breakdown
+      // 7. Calculate Size Breakdown
       let jsBytes = 0;
       let cssBytes = 0;
       let imgBytes = 0;
       let audioBytes = 0;
 
-      // Scan inlined tags in final html
-      const scriptMatches = html.match(/<script[\s\S]*?<\x2Fscript>/gi) || [];
+      const allScriptRegex = new RegExp('<script[\\s\\S]*?<\\/' + 'script>', 'gi');
+      const scriptMatches = html.match(allScriptRegex) || [];
       scriptMatches.forEach(s => jsBytes += new Blob([s]).size);
 
       const styleMatches = html.match(/<style[\s\S]*?<\/style>/gi) || [];
@@ -341,7 +520,7 @@
       document.getElementById('legendAudio').textContent = `${(audioBytes/1024).toFixed(1)} KB (${audioPct}%)`;
       document.getElementById('legendHtml').textContent = `${(htmlMarkupBytes/1024).toFixed(1)} KB (${htmlPct}%)`;
 
-      log('Сборка успешно завершена!', 'success');
+      log('Сборка успешно завершена! Все ассеты и картинки заинлайнены.', 'success');
       
       const blob = new Blob([html], { type: 'text/html' });
       downloadLink.href = URL.createObjectURL(blob);

@@ -19,7 +19,10 @@ parser = TextParser()
 html_files = [f for f in glob.glob('*.html') if not f.endswith('_en.html') and f != 'validator_dom.html']
 for html_file in html_files:
     with open(html_file, 'r', encoding='utf-8') as f:
-        parser.feed(f.read())
+        raw_html = f.read()
+        clean_html = re.sub(r'<script\b[^>]*>[\s\S]*?</script>', '', raw_html, flags=re.IGNORECASE)
+        clean_html = re.sub(r'<style\b[^>]*>[\s\S]*?</style>', '', clean_html, flags=re.IGNORECASE)
+        parser.feed(clean_html)
 
 ru_strings = sorted(list(parser.texts))
 
