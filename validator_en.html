@@ -289,7 +289,132 @@
                   border-color: rgba(30, 214, 91, 0.4) !important;
                   color: var(--color-primary) !important;
                 }
+                .stacked-bar-seg:hover {
+                  filter: brightness(1.25);
+                  cursor: pointer;
+                }
               </style>
+            </div>
+
+            <!-- Size Doctor & Bundle Treemap Panel -->
+            <div id="sizeDoctorContainer" style="display: none; width: 100%; margin-top: 2rem; background: rgba(0,0,0,0.6); border: 1px solid rgba(30, 214, 91, 0.3); border-radius: 16px; padding: 1.5rem; box-sizing: border-box;">
+              
+              <!-- Header with Health Score -->
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1rem;">
+                <div>
+                  <h3 style="color: var(--color-primary); margin: 0; font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
+                    🩺 PLAYABLE SIZE DOCTOR & BUNDLE TREEMAP
+                  </h3>
+                  <p style="margin: 4px 0 0 0; font-size: 0.82rem; color: var(--color-text-muted);">
+                    Deep bundle weight analysis, detection of heavy Base64 assets, duplicates, and interactive size treemap.
+                  </p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                  <div id="docHealthScoreBadge" style="padding: 6px 14px; border-radius: 20px; font-weight: 800; font-family: monospace; font-size: 1rem; background: rgba(30,214,91,0.15); color: var(--color-primary); border: 1px solid rgba(30,214,91,0.4);">
+                    Health Score: 95/100 (A+)
+                  </div>
+                  <button id="btnOptimizeCleanHtml" class="btn-cyber btn-cyber-primary" style="font-size: 0.8rem; padding: 6px 12px;">
+                    🧹 Download Cleaned HTML
+                  </button>
+                </div>
+              </div>
+
+              <!-- Top Summary Stats Grid -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <div class="stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px;">
+                  <span style="font-size: 0.75rem; color: var(--color-text-muted);">File Size / Limit:</span>
+                  <div id="docSizeRatio" style="font-size: 1.1rem; font-weight: 800; color: #fff; font-family: monospace; margin-top: 4px;">0 KB / 5 MB</div>
+                  <div id="docSizeGauge" style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 6px; overflow: hidden;">
+                    <div id="docSizeGaugeFill" style="width: 0%; height: 100%; background: var(--color-primary);"></div>
+                  </div>
+                </div>
+
+                <div class="stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px;">
+                  <span style="font-size: 0.75rem; color: var(--color-text-muted);">🖼️ Images (Base64):</span>
+                  <div id="docImagesWeight" style="font-size: 1.1rem; font-weight: 800; color: #1ed65f; font-family: monospace; margin-top: 4px;">0 KB (0%)</div>
+                  <span id="docImagesCount" style="font-size: 0.72rem; color: var(--color-text-muted);">0 шт.</span>
+                </div>
+
+                <div class="stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px;">
+                  <span style="font-size: 0.75rem; color: var(--color-text-muted);">🔊 Audio (Sounds):</span>
+                  <div id="docAudioWeight" style="font-size: 1.1rem; font-weight: 800; color: #00ffff; font-family: monospace; margin-top: 4px;">0 KB (0%)</div>
+                  <span id="docAudioCount" style="font-size: 0.72rem; color: var(--color-text-muted);">0 шт.</span>
+                </div>
+
+                <div class="stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px;">
+                  <span style="font-size: 0.75rem; color: var(--color-text-muted);">📜 JavaScript / Engines:</span>
+                  <div id="docJsWeight" style="font-size: 1.1rem; font-weight: 800; color: #ffcc00; font-family: monospace; margin-top: 4px;">0 KB (0%)</div>
+                  <span id="docJsCount" style="font-size: 0.72rem; color: var(--color-text-muted);">Clean code</span>
+                </div>
+
+                <div class="stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px;">
+                  <span style="font-size: 0.75rem; color: var(--color-text-muted);">🎨 CSS + 📄 HTML:</span>
+                  <div id="docCssHtmlWeight" style="font-size: 1.1rem; font-weight: 800; color: #ff007f; font-family: monospace; margin-top: 4px;">0 KB (0%)</div>
+                  <span id="docFontsCount" style="font-size: 0.72rem; color: var(--color-text-muted);">Fonts and markup</span>
+                </div>
+              </div>
+
+              <!-- Interactive Stacked Bar & Treemap -->
+              <div style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 6px;">
+                  <span style="font-weight: 700; color: #fff; font-size: 0.85rem;">🗺️ INTERACTIVE BUNDLE WEIGHT TREEMAP:</span>
+                  <div style="display: flex; gap: 0.8rem; font-size: 0.72rem; font-family: monospace; flex-wrap: wrap;">
+                    <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; background: #1ed65f; border-radius: 2px;"></span>Images</span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; background: #00ffff; border-radius: 2px;"></span>Audio</span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; background: #ffcc00; border-radius: 2px;"></span>Scripts (JS)</span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; background: #ff007f; border-radius: 2px;"></span>Styles (CSS)</span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; background: #9d4edd; border-radius: 2px;"></span>Fonts</span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; background: #4a5568; border-radius: 2px;"></span>HTML</span>
+                  </div>
+                </div>
+
+                <!-- Stacked Percentage Bar -->
+                <div id="docStackedBar" style="width: 100%; height: 28px; background: rgba(255,255,255,0.05); border-radius: 6px; overflow: hidden; display: flex; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 0.8rem;">
+                  <!-- Dynamically filled segments -->
+                </div>
+
+                <!-- Treemap Grid Boxes -->
+                <div id="docTreemapGrid" style="display: flex; flex-wrap: wrap; gap: 6px; width: 100%; min-height: 80px;">
+                  <!-- Dynamically generated Treemap tiles -->
+                </div>
+              </div>
+
+              <!-- Doctor Diagnostics & Recommendations -->
+              <div style="margin-bottom: 1.5rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 1rem;">
+                <h4 style="margin: 0 0 0.6rem 0; color: var(--color-primary); font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                  💡 SIZE DOCTOR DIAGNOSTICS & RECOMMENDATIONS:
+                </h4>
+                <div id="docRecommendationsList" style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.82rem;">
+                  <!-- Recommendations items -->
+                </div>
+              </div>
+
+              <!-- Detailed Asset Table Accordion -->
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+                  <span style="font-weight: 700; color: #fff; font-size: 0.85rem;">📋 TOP EMBEDDED BASE64 ASSETS BY SIZE:</span>
+                  <span id="docTotalAssetsCount" style="font-size: 0.75rem; color: var(--color-text-muted);">0 assets</span>
+                </div>
+                
+                <div style="max-height: 240px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; background: #05070a;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; text-align: left; font-family: monospace;">
+                    <thead>
+                      <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: var(--color-text-muted);">
+                        <th style="padding: 6px 10px;">#</th>
+                        <th style="padding: 6px 10px;">Тип</th>
+                        <th style="padding: 6px 10px;">MIME / Preview</th>
+                        <th style="padding: 6px 10px;">Size</th>
+                        <th style="padding: 6px 10px;">% of bundle</th>
+                        <th style="padding: 6px 10px;">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="docAssetsTableBody">
+                      <!-- Dynamically rendered rows -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
             </div>
 
           </div>
@@ -384,10 +509,10 @@
       const net = networks[networkSelect.value];
 
       if (file.size > net.maxSize) {
-        log(`ОШИБКА: Размер файла превышает лимит ${net.maxSize / 1024 / 1024} MB`, 'error', `Ваш файл весит ${(file.size / 1024 / 1024).toFixed(2)} MB, что превышает ограничение площадки.\n\nПопробуйте сжать изображения (используйте TinyPNG или TexturePacker), минифицировать JS/CSS или уменьшить качество аудио.`);
+        log(`ОШИБКА: Size файла превышает лимит ${net.maxSize / 1024 / 1024} MB`, 'error', `Ваш файл весит ${(file.size / 1024 / 1024).toFixed(2)} MB, что превышает ограничение площадки.\n\nПопробуйте сжать изображения (используйте TinyPNG или TexturePacker), минифицировать JS/CSS или уменьшить качество аудио.`);
         return;
       } else {
-        log(`Размер файла в норме (Лимит: ${net.maxSize / 1024 / 1024} MB)`, 'success');
+        log(`Size файла в норме (Лимит: ${net.maxSize / 1024 / 1024} MB)`, 'success');
       }
 
       if (file.name.endsWith('.zip')) {
@@ -978,6 +1103,7 @@
         } else {
           log('index.html найден в корне архива.', 'success');
           previewPlayable(indexHtml);
+          analyzeBundleSize(indexHtml, net, file.size);
         }
 
         if (net.singleFile && fileCount > 1) {
@@ -996,7 +1122,355 @@
       const text = await file.text();
       validateHtmlContent(text, net);
       previewPlayable(text);
+      analyzeBundleSize(text, net, file.size);
       log('Проверка HTML файла завершена.', 'info');
+    }
+
+    let currentRawHtml = "";
+    
+    function analyzeBundleSize(html, net, totalFileSize) {
+      currentRawHtml = html;
+      const sizeDoctorContainer = document.getElementById('sizeDoctorContainer');
+      if (!sizeDoctorContainer) return;
+      sizeDoctorContainer.style.display = 'block';
+
+      const totalBytes = totalFileSize || new Blob([html]).size;
+      const netLimitBytes = net.maxSize;
+      const ratioPercent = Math.min(100, (totalBytes / netLimitBytes) * 100);
+
+      // 1. Find all Data URIs
+      const dataUriRegex = /data:([a-zA-Z0-9\/\+\.-]+);base64,([A-Za-z0-9+/=]+)/g;
+      let match;
+      const assets = [];
+      const duplicateMap = {};
+      let totalImagesBytes = 0;
+      let totalAudioBytes = 0;
+      let totalFontBytes = 0;
+      let totalOtherDataUriBytes = 0;
+      let imagesCount = 0;
+      let audioCount = 0;
+      let fontCount = 0;
+
+      while ((match = dataUriRegex.exec(html)) !== null) {
+        const fullUri = match[0];
+        const mime = match[1].toLowerCase();
+        const base64Data = match[2];
+        const approxBytes = Math.round(base64Data.length * 0.75);
+
+        duplicateMap[base64Data] = (duplicateMap[base64Data] || 0) + 1;
+
+        let category = 'other';
+        let icon = '📦';
+        if (mime.startsWith('image/')) {
+          category = 'image';
+          icon = '🖼️';
+          totalImagesBytes += approxBytes;
+          imagesCount++;
+        } else if (mime.startsWith('audio/')) {
+          category = 'audio';
+          icon = '🔊';
+          totalAudioBytes += approxBytes;
+          audioCount++;
+        } else if (mime.includes('font') || mime.includes('ttf') || mime.includes('woff')) {
+          category = 'font';
+          icon = '🔤';
+          totalFontBytes += approxBytes;
+          fontCount++;
+        } else {
+          totalOtherDataUriBytes += approxBytes;
+        }
+
+        assets.push({
+          icon,
+          category,
+          mime,
+          bytes: approxBytes,
+          uri: fullUri,
+          isDuplicate: false
+        });
+      }
+
+      assets.forEach(a => {
+        const b64 = a.uri.split(',')[1] || '';
+        if (duplicateMap[b64] > 1) a.isDuplicate = true;
+      });
+
+      // 2. Compute JS Scripts Weight
+      const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+      let totalJsBytes = 0;
+      let scriptMatch;
+      while ((scriptMatch = scriptRegex.exec(html)) !== null) {
+        let scriptContent = scriptMatch[1];
+        const cleanScript = scriptContent.replace(dataUriRegex, '');
+        totalJsBytes += new Blob([cleanScript]).size;
+      }
+
+      // 3. Compute CSS Styles Weight
+      const styleRegex = /<style\b[^>]*>([\s\S]*?)<\/style>/gi;
+      let totalCssBytes = 0;
+      let styleMatch;
+      while ((styleMatch = styleRegex.exec(html)) !== null) {
+        let styleContent = styleMatch[1];
+        const cleanStyle = styleContent.replace(dataUriRegex, '');
+        totalCssBytes += new Blob([cleanStyle]).size;
+      }
+
+      // 4. HTML markup weight
+      const dataUriSum = totalImagesBytes + totalAudioBytes + totalFontBytes + totalOtherDataUriBytes;
+      let htmlMarkupBytes = Math.max(0, totalBytes - dataUriSum - totalJsBytes - totalCssBytes);
+
+      const formatKB = (b) => (b / 1024).toFixed(1) + ' KB';
+      const formatMB = (b) => (b / (1024 * 1024)).toFixed(2) + ' MB';
+      const pct = (b) => totalBytes > 0 ? ((b / totalBytes) * 100).toFixed(1) + '%' : '0%';
+
+      const docSizeRatio = document.getElementById('docSizeRatio');
+      const docSizeGaugeFill = document.getElementById('docSizeGaugeFill');
+      const docImagesWeight = document.getElementById('docImagesWeight');
+      const docImagesCount = document.getElementById('docImagesCount');
+      const docAudioWeight = document.getElementById('docAudioWeight');
+      const docAudioCount = document.getElementById('docAudioCount');
+      const docJsWeight = document.getElementById('docJsWeight');
+      const docCssHtmlWeight = document.getElementById('docCssHtmlWeight');
+      const docHealthScoreBadge = document.getElementById('docHealthScoreBadge');
+
+      const sizeDisplay = totalBytes > 1024 * 1024 ? formatMB(totalBytes) : formatKB(totalBytes);
+      const limitDisplay = formatMB(netLimitBytes);
+      docSizeRatio.textContent = `${sizeDisplay} / ${limitDisplay} (${ratioPercent.toFixed(0)}%)`;
+      docSizeGaugeFill.style.width = Math.min(100, ratioPercent) + '%';
+      if (totalBytes > netLimitBytes) {
+        docSizeGaugeFill.style.background = '#ff3333';
+        docSizeRatio.style.color = '#ff3333';
+      } else if (ratioPercent > 80) {
+        docSizeGaugeFill.style.background = '#ffcc00';
+        docSizeRatio.style.color = '#ffcc00';
+      } else {
+        docSizeGaugeFill.style.background = '#1ed65f';
+        docSizeRatio.style.color = '#1ed65f';
+      }
+
+      docImagesWeight.textContent = `${formatKB(totalImagesBytes)} (${pct(totalImagesBytes)})`;
+      docImagesCount.textContent = `${imagesCount} встроено`;
+
+      docAudioWeight.textContent = `${formatKB(totalAudioBytes)} (${pct(totalAudioBytes)})`;
+      docAudioCount.textContent = `${audioCount} треков/сэмплов`;
+
+      docJsWeight.textContent = `${formatKB(totalJsBytes)} (${pct(totalJsBytes)})`;
+      docCssHtmlWeight.textContent = `${formatKB(totalCssBytes + htmlMarkupBytes)} (${pct(totalCssBytes + htmlMarkupBytes)})`;
+
+      // 5. Diagnostics & Health Score
+      let healthScore = 100;
+      const recs = [];
+
+      if (totalBytes > netLimitBytes) {
+        healthScore -= 40;
+        const overKb = formatKB(totalBytes - netLimitBytes);
+        recs.push({
+          type: 'danger',
+          icon: '🚨',
+          title: `Превышен лимит рекламной сети на ${overKb}!`,
+          desc: `Лимит для ${net.name} составляет ${limitDisplay}. Креатив будет отклонен сетью. Сожмите картинки через Image Optimizer или уменьшите битрейт аудио.`
+        });
+      } else if (ratioPercent > 85) {
+        healthScore -= 10;
+        recs.push({
+          type: 'warning',
+          icon: '⚠️',
+          title: `Size близок к лимиту (${ratioPercent.toFixed(0)}%)`,
+          desc: `Осталось всего ${formatKB(netLimitBytes - totalBytes)} свободного места до порога отклонения.`
+        });
+      }
+
+      const largePngs = assets.filter(a => a.mime === 'image/png' && a.bytes > 80 * 1024);
+      if (largePngs.length > 0) {
+        healthScore -= Math.min(20, largePngs.length * 5);
+        recs.push({
+          type: 'warning',
+          icon: '🖼️',
+          title: `Найдено ${largePngs.length} тяжелых PNG картинок (>80 KB)`,
+          desc: `PNG в Base64 весят много. Конвертация в WebP через наш Image Optimizer уменьшит их вес на ~40-70% без потери качества.`
+        });
+      }
+
+      if (totalAudioBytes > 1.2 * 1024 * 1024) {
+        healthScore -= 15;
+        recs.push({
+          type: 'warning',
+          icon: '🔊',
+          title: `Audio занимает ${formatMB(totalAudioBytes)} (${pct(totalAudioBytes)} всего файла)`,
+          desc: `Рекомендуется обрезать длину трека в Audio Optimizer или использовать 0 KB Web Audio Sound FX синтезатор для звуковых эффектов.`
+        });
+      }
+
+      const duplicates = Object.keys(duplicateMap).filter(k => duplicateMap[k] > 1);
+      if (duplicates.length > 0) {
+        healthScore -= 15;
+        recs.push({
+          type: 'danger',
+          icon: '👯',
+          title: `Обнаружено ${duplicates.length} дублирующихся Base64 ассетов!`,
+          desc: `Одна и та же картинка или звук внедрена в HTML несколько раз. Сохраните Data URI в одну JavaScript переменную и используйте её повторно.`
+        });
+      }
+
+      const commentMatches = (html.match(/<!--[\s\S]*?-->/g) || []).join('').length +
+                             (html.match(/\/\*[\s\S]*?\*\//g) || []).join('').length;
+      if (commentMatches > 5 * 1024) {
+        healthScore -= 5;
+        recs.push({
+          type: 'info',
+          icon: '🧹',
+          title: `В коде найдено ~${formatKB(commentMatches)} комментариев и пробелов`,
+          desc: `Нажмите кнопку «Скачать очищенный HTML» вверху, чтобы автоматически удалить лишние символы.`
+        });
+      }
+
+      if (recs.length === 0) {
+        recs.push({
+          type: 'success',
+          icon: '✨',
+          title: 'Отличная оптимизация! Креатив идеально готов к релизу.',
+          desc: 'Все ассеты упакованы компактно, дубликатов не найдено, лимиты сети соблюдены.'
+        });
+      }
+
+      healthScore = Math.max(10, Math.min(100, healthScore));
+      let grade = 'A+';
+      let gradeColor = '#1ed65f';
+      if (healthScore < 60) { grade = 'F'; gradeColor = '#ff3333'; }
+      else if (healthScore < 75) { grade = 'C'; gradeColor = '#ff8800'; }
+      else if (healthScore < 90) { grade = 'B'; gradeColor = '#00ffff'; }
+
+      docHealthScoreBadge.textContent = `Health Score: ${healthScore}/100 (${grade})`;
+      docHealthScoreBadge.style.color = gradeColor;
+      docHealthScoreBadge.style.borderColor = gradeColor;
+      docHealthScoreBadge.style.background = `${gradeColor}18`;
+
+      const docRecsList = document.getElementById('docRecommendationsList');
+      docRecsList.innerHTML = recs.map(r => {
+        let borderCol = r.type === 'danger' ? '#ff3333' : r.type === 'warning' ? '#ffcc00' : r.type === 'success' ? '#1ed65f' : '#00ffff';
+        return `
+          <div style="padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.02); border-left: 3px solid ${borderCol}; display: flex; gap: 10px; align-items: flex-start;">
+            <span style="font-size: 1.1rem; line-height: 1;">${r.icon}</span>
+            <div>
+              <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">${r.title}</div>
+              <div style="color: var(--color-text-muted); font-size: 0.78rem;">${r.desc}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 6. Render Stacked Bar
+      const docStackedBar = document.getElementById('docStackedBar');
+      const cats = [
+        { name: 'Изображения', bytes: totalImagesBytes, color: '#1ed65f' },
+        { name: 'Audio', bytes: totalAudioBytes, color: '#00ffff' },
+        { name: 'JavaScript', bytes: totalJsBytes, color: '#ffcc00' },
+        { name: 'CSS', bytes: totalCssBytes, color: '#ff007f' },
+        { name: 'Fonts', bytes: totalFontBytes, color: '#9d4edd' },
+        { name: 'HTML/DOM', bytes: htmlMarkupBytes, color: '#4a5568' }
+      ].filter(c => c.bytes > 0);
+
+      docStackedBar.innerHTML = cats.map(c => {
+        const p = ((c.bytes / totalBytes) * 100).toFixed(1);
+        return `<div title="${c.name}: ${formatKB(c.bytes)} (${p}%)" style="width: ${p}%; height: 100%; background: ${c.color}; transition: width 0.4s; position: relative;" class="stacked-bar-seg"></div>`;
+      }).join('');
+
+      // 7. Render Treemap Grid
+      const docTreemapGrid = document.getElementById('docTreemapGrid');
+      docTreemapGrid.innerHTML = cats.map(c => {
+        const p = ((c.bytes / totalBytes) * 100).toFixed(1);
+        const flexGrow = Math.max(1, Math.round((c.bytes / totalBytes) * 100));
+        return `
+          <div style="flex: ${flexGrow} 1 120px; background: rgba(0,0,0,0.5); border: 1px solid ${c.color}66; border-top: 3px solid ${c.color}; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; min-height: 80px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; color: #fff; font-size: 0.8rem;">${c.name}</span>
+              <span style="color: ${c.color}; font-weight: 800; font-family: monospace; font-size: 0.8rem;">${p}%</span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--color-text-muted); font-family: monospace; margin-top: 6px;">${formatKB(c.bytes)}</div>
+          </div>
+        `;
+      }).join('');
+
+      // 8. Render Assets Table
+      const docAssetsTableBody = document.getElementById('docAssetsTableBody');
+      const docTotalAssetsCount = document.getElementById('docTotalAssetsCount');
+      docTotalAssetsCount.textContent = `${assets.length} ресурсов`;
+
+      assets.sort((a, b) => b.bytes - a.bytes);
+
+      if (assets.length === 0) {
+        docAssetsTableBody.innerHTML = `<tr><td colspan="6" style="padding: 1rem; text-align: center; color: var(--color-text-muted);">No embedded Data URI assets found</td></tr>`;
+      } else {
+        docAssetsTableBody.innerHTML = assets.slice(0, 30).map((a, idx) => {
+          let previewHtml = `<span style="color: var(--color-text-muted); font-size: 0.72rem;">${a.mime}</span>`;
+          if (a.category === 'image') {
+            previewHtml = `<div style="display: flex; align-items: center; gap: 6px;"><img src="${a.uri}" style="width: 24px; height: 24px; object-fit: contain; background: #222; border-radius: 4px; border: 1px solid #444;"><span style="color: #aaa; font-size: 0.72rem;">${a.mime}</span></div>`;
+          } else if (a.category === 'audio') {
+            previewHtml = `<div style="display: flex; align-items: center; gap: 6px;"><audio src="${a.uri}" controls style="height: 20px; width: 120px;"></audio><span style="color: #aaa; font-size: 0.72rem;">${a.mime}</span></div>`;
+          }
+
+          const dupBadge = a.isDuplicate ? `<span style="padding: 2px 4px; border-radius: 3px; background: rgba(255,51,51,0.2); color: #ff3333; font-size: 0.65rem; margin-left: 4px;">DUPLICATE</span>` : '';
+
+          return `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+              <td style="padding: 6px 10px; color: var(--color-text-muted);">${idx + 1}</td>
+              <td style="padding: 6px 10px;">${a.icon} ${a.category}${dupBadge}</td>
+              <td style="padding: 6px 10px;">${previewHtml}</td>
+              <td style="padding: 6px 10px; color: #fff; font-weight: 700;">${formatKB(a.bytes)}</td>
+              <td style="padding: 6px 10px; color: var(--color-primary);">${pct(a.bytes)}</td>
+              <td style="padding: 6px 10px;">
+                <button type="button" class="btn-copy-data-uri" data-uri="${encodeURIComponent(a.uri)}" style="background: rgba(255,255,255,0.05); color: #aaa; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 2px 6px; font-size: 0.7rem; cursor: pointer;">Copy</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        docAssetsTableBody.querySelectorAll('.btn-copy-data-uri').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const uri = decodeURIComponent(btn.getAttribute('data-uri'));
+            navigator.clipboard.writeText(uri).then(() => {
+              const oldText = btn.textContent;
+              btn.textContent = '✓ Скопировано!';
+              btn.style.color = 'var(--color-primary)';
+              setTimeout(() => {
+                btn.textContent = oldText;
+                btn.style.color = '#aaa';
+              }, 1500);
+            });
+          });
+        });
+      }
+    }
+
+    const btnOptimizeCleanHtml = document.getElementById('btnOptimizeCleanHtml');
+    if (btnOptimizeCleanHtml) {
+      btnOptimizeCleanHtml.addEventListener('click', () => {
+        if (!currentRawHtml) {
+          alert('Сначала загрузите HTML или ZIP файл.');
+          return;
+        }
+
+        const originalSize = new Blob([currentRawHtml]).size;
+        
+        let cleaned = currentRawHtml
+          .replace(/<!--[\s\S]*?-->/g, '')
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          .replace(/^[ \t]+$/gm, '')
+          .replace(/\n{3,}/g, '\n\n');
+
+        const newSize = new Blob([cleaned]).size;
+        const savedBytes = originalSize - newSize;
+
+        const blob = new Blob([cleaned], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'optimized_index.html';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        alert(`HTML успешно очищен!\nСэкономлено: ${(savedBytes / 1024).toFixed(2)} KB\nФайл скачан: optimized_index.html`);
+      });
     }
 
     function validateHtmlContent(html, net) {

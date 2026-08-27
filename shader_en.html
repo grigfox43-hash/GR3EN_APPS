@@ -368,7 +368,7 @@ void main() {
       },
       pixelate: {
         uniforms: {
-          u_pixels: { type: 'f', value: 40.0, min: 10.0, max: 200.0, label: 'Размер пикселей' }
+          u_pixels: { type: 'f', value: 40.0, min: 10.0, max: 200.0, label: 'Size пикселей' }
         },
         fragmentShader: `
 uniform float u_time;
@@ -605,7 +605,7 @@ void main() {
       },
       halftone: {
         uniforms: {
-          u_dots: { type: 'f', value: 50.0, min: 10.0, max: 150.0, label: 'Размер точек' },
+          u_dots: { type: 'f', value: 50.0, min: 10.0, max: 150.0, label: 'Size точек' },
           u_angle: { type: 'f', value: 0.5, min: 0.0, max: 3.14, label: 'Угол наклона' }
         },
         fragmentShader: `
@@ -810,7 +810,7 @@ void main() {
       },
       ascii: {
         uniforms: {
-          u_size: { type: 'f', value: 60.0, min: 20.0, max: 150.0, label: 'Размер сетки' }
+          u_size: { type: 'f', value: 60.0, min: 20.0, max: 150.0, label: 'Size сетки' }
         },
         fragmentShader: `
 uniform float u_time;
