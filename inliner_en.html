@@ -248,12 +248,11 @@
       });
 
       // Inline JS
-      // <script src="js/main.js"></script>
-      html = html.replace(/<script[^>]+src=["']([^"']+)["'][^>]*>[\s\S]*?<\/script>/gi, (match, src) => {
+      html = html.replace(/<script[^>]+src=["']([^"']+)["'][^>]*>[\s\S]*?<\x2Fscript>/gi, (match, src) => {
         const cleanSrc = src.replace(/^\.\//, '');
         if (fileMap[cleanSrc]) {
           log(`Заинлайнен JS: ${cleanSrc}`, 'success');
-          return `<script>\n${fileMap[cleanSrc]}\n<\/script>`;
+          return `<script>\n${fileMap[cleanSrc]}\n<` + `/script>`;
         }
         log(`ПРЕДУПРЕЖДЕНИЕ: JS файл не найден в архиве: ${cleanSrc}`, 'warn');
         return match;
@@ -304,7 +303,7 @@
       let audioBytes = 0;
 
       // Scan inlined tags in final html
-      const scriptMatches = html.match(/<script[\s\S]*?<\/script>/gi) || [];
+      const scriptMatches = html.match(/<script[\s\S]*?<\x2Fscript>/gi) || [];
       scriptMatches.forEach(s => jsBytes += new Blob([s]).size);
 
       const styleMatches = html.match(/<style[\s\S]*?<\/style>/gi) || [];
