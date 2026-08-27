@@ -303,9 +303,6 @@
                   <div id="docHealthScoreBadge" style="padding: 6px 14px; border-radius: 20px; font-weight: 800; font-family: monospace; font-size: 1rem; background: rgba(30,214,91,0.15); color: var(--color-primary); border: 1px solid rgba(30,214,91,0.4);">
                     Health Score: 95/100 (A+)
                   </div>
-                  <button id="btnOptimizeCleanHtml" class="btn-cyber btn-cyber-primary" style="font-size: 0.8rem; padding: 6px 12px;">
-                    🧹 Download Cleaned HTML
-                  </button>
                 </div>
               </div>
 
@@ -1431,37 +1428,6 @@
           });
         });
       }
-    }
-
-    const btnOptimizeCleanHtml = document.getElementById('btnOptimizeCleanHtml');
-    if (btnOptimizeCleanHtml) {
-      btnOptimizeCleanHtml.addEventListener('click', () => {
-        if (!currentRawHtml) {
-          alert('Сначала загрузите HTML или ZIP файл.');
-          return;
-        }
-
-        const originalSize = new Blob([currentRawHtml]).size;
-        
-        let cleaned = currentRawHtml
-          .replace(/<!--[\s\S]*?-->/g, '')
-          .replace(/\/\*[\s\S]*?\*\//g, '')
-          .replace(/^[ \t]+$/gm, '')
-          .replace(/\n{3,}/g, '\n\n');
-
-        const newSize = new Blob([cleaned]).size;
-        const savedBytes = originalSize - newSize;
-
-        const blob = new Blob([cleaned], { type: 'text/html;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'optimized_index.html';
-        a.click();
-        URL.revokeObjectURL(url);
-
-        alert(`HTML успешно очищен!\nСэкономлено: ${(savedBytes / 1024).toFixed(2)} KB\nФайл скачан: optimized_index.html`);
-      });
     }
 
     function validateHtmlContent(html, net) {
