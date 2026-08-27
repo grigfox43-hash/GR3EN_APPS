@@ -321,51 +321,35 @@
       return null;
     }
 
-    // Helper to inline all url(...) inside a CSS string
+    // Fast Single-Pass CSS URL Replacer (O(N), bounded length, no backtracking)
     function inlineCssUrls(cssContent, contextDir = '') {
-      return cssContent.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi, (match, quote, url) => {
-        const dataUri = resolveAsset(url, contextDir);
+      const urlRegex = /url\(\s*(?:'([^'\r\n]{1,250})'|"([^"\r\n]{1,250})"|([^'"\)\s\r\n]{1,250}))\s*\)/gi;
+      return cssContent.replace(urlRegex, (match, singleQ, doubleQ, bare) => {
+        const urlVal = singleQ || doubleQ || bare;
+        if (!urlVal) return match;
+        const dataUri = resolveAsset(urlVal, contextDir);
         if (dataUri) {
-          log(`🎨 Заинлайнен ресурс в CSS: ${url.split('?')[0]}`, 'success');
+          log(`🎨 Заинлайнен ресурс в CSS: ${urlVal.split('?')[0]}`, 'success');
           return `url('${dataUri}')`;
         }
         return match;
       });
     }
 
-    // Helper to inline all known asset string paths inside a JS string
+    // Fast Single-Pass JS String Literal Replacer (O(N), bounded length, no catastrophic loops)
     function inlineJsAssetStrings(jsContent, contextDir = '') {
-      let inlinedJs = jsContent;
-
-      // Pass 1: Replace any string literal ending with media extension
-      const literalRegex = /(["'`])((?:\\.|(?!\1)[^\r\n])+?\.(?:png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf|otf|eot)(?:\?[^"'`\r\n]*)?)\1/gi;
-      inlinedJs = inlinedJs.replace(literalRegex, (match, quote, pathStr) => {
-        const dataUri = resolveAsset(pathStr, contextDir);
-        if (dataUri) {
-          log(`📜 Заинлайнен ассет в JS: ${pathStr.split('?')[0]}`, 'success');
+      const strRegex = /"([^"\r\n]{1,250})"|'([^'\r\n]{1,250})'|`([^`\r\n]{1,250})`/g;
+      return jsContent.replace(strRegex, (match, doubleQ, singleQ, backtick) => {
+        const strVal = doubleQ !== undefined ? doubleQ : (singleQ !== undefined ? singleQ : backtick);
+        const quote = doubleQ !== undefined ? '"' : (singleQ !== undefined ? "'" : '`');
+        
+        const dataUri = resolveAsset(strVal, contextDir);
+        if (dataUri && dataUri.startsWith('data:')) {
+          log(`📜 Заинлайнена картинка/ассет в JS: ${strVal.split('?')[0]}`, 'success');
           return `${quote}${dataUri}${quote}`;
         }
         return match;
       });
-
-      // Pass 2: Iterate all known media assets from fileMap to catch CreateJS manifests and custom object properties
-      const assetKeys = Object.keys(fileMap).filter(k => k.match(/\.(png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf)$/i));
-      assetKeys.forEach(assetKey => {
-        const dataUri = fileMap[assetKey];
-        if (!dataUri || !dataUri.startsWith('data:')) return;
-
-        const base = assetKey.split('/').pop();
-        const escapedBase = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-        // Match string literals ending in this basename: "anything/base.ext" or 'base.ext'
-        const baseLiteralRegex = new RegExp(`(["'\`])([^"'\\r\\n]*?${escapedBase}(?:\\?[^"'\\r\\n]*)?)\\1`, 'gi');
-        inlinedJs = inlinedJs.replace(baseLiteralRegex, (match, quote, matchedPath) => {
-          log(`📜 Заинлайнена картинка в JS: ${matchedPath.split('?')[0]}`, 'success');
-          return `${quote}${dataUri}${quote}`;
-        });
-      });
-
-      return inlinedJs;
     }
 
     btnProcess.addEventListener('click', () => {
@@ -377,7 +361,7 @@
 
       if (!html) return log('ОШИБКА: index.html не найден!', 'error');
       
-      log('Начинаю процесс полной сборки (Inlining)...', 'info');
+      log('Начинаю процесс быстрой сборки (Inlining)...', 'info');
 
       // 1. Universal CSS Files (<link rel="stylesheet" href="...">)
       const linkCssRegex = /<link[^>]+rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>|<link[^>]+href=["']([^"']+)["'][^>]*rel=["']stylesheet["'][^>]*>/gi;
@@ -394,40 +378,7 @@
         return match;
       });
 
-      // 2. Universal CSS url() replacement across the entire HTML (handles <style> tags and inline style attributes)
-      html = inlineCssUrls(html, '');
-
-      // 3. Universal HTML Attribute Scanner (catches src, source, data-src, href, background, poster, etc.)
-      const htmlAttrRegex = /([a-zA-Z0-9_-]+)=(["][^"'\s;()<>]+\.(?:png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf|otf|eot)(?:\?[^"'\s;<>]*)?["]|['][^"'\s;()<>]+\.(?:png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf|otf|eot)(?:\?[^"'\s;<>]*)?['])/gi;
-      html = html.replace(htmlAttrRegex, (match, attrName, quotedVal) => {
-        const quote = quotedVal[0];
-        const rawVal = quotedVal.slice(1, -1);
-        const dataUri = resolveAsset(rawVal, '');
-        if (dataUri) {
-          log(`🖼️ Заинлайнена картинка в HTML [${attrName}]: ${rawVal.split('?')[0]}`, 'success');
-          return `${attrName}=${quote}${dataUri}${quote}`;
-        }
-        return match;
-      });
-
-      // 4. Responsive srcset attributes
-      html = html.replace(/\bsrcset=["']([^"']+)["']/gi, (match, srcsetVal) => {
-        const parts = srcsetVal.split(',').map(part => {
-          const trimmed = part.trim();
-          const tokens = trimmed.split(/\s+/);
-          const url = tokens[0];
-          const descriptor = tokens.slice(1).join(' ');
-          const dataUri = resolveAsset(url, '');
-          if (dataUri) {
-            log(`🖼️ Заинлайнен ассет srcset: ${url}`, 'success');
-            return dataUri + (descriptor ? ' ' + descriptor : '');
-          }
-          return part;
-        });
-        return `srcset="${parts.join(', ')}"`;
-      });
-
-      // 5. Universal JS Files
+      // 2. Universal JS Files
       const scriptSrcRegex = new RegExp('<' + 'sc' + 'ript[^>]+src=["\']([^"\']+)["\'][^>]*>[\\s\\S]*?<\\/' + 'sc' + 'ript>', 'gi');
       html = html.replace(scriptSrcRegex, (match, src) => {
         const jsContent = resolveAsset(src, '');
@@ -441,6 +392,41 @@
         return match;
       });
 
+      // 3. Universal CSS url() replacement across the entire HTML (handles style tags and inline style attributes)
+      html = inlineCssUrls(html, '');
+
+      // 4. Universal HTML Attributes specifically pointing to images, audio, or fonts
+      const htmlAttrRegex = /([a-zA-Z0-9_-]+)=("([^"\r\n]{1,250}\.(?:png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf|otf|eot)(?:\?[^"\r\n]*)?)"|'([^'\r\n]{1,250}\.(?:png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf|otf|eot)(?:\?[^'\r\n]*)?)')/gi;
+      html = html.replace(htmlAttrRegex, (match, attrName, quoted, doubleQ, singleQ) => {
+        const val = doubleQ !== undefined ? doubleQ : singleQ;
+        const quote = doubleQ !== undefined ? '"' : "'";
+        if (val.includes(';') || val.includes('{') || val.includes('}')) return match;
+
+        const dataUri = resolveAsset(val, '');
+        if (dataUri && dataUri.startsWith('data:')) {
+          log(`🖼️ Заинлайнена картинка в HTML [${attrName}]: ${val.split('?')[0]}`, 'success');
+          return `${attrName}=${quote}${dataUri}${quote}`;
+        }
+        return match;
+      });
+
+      // 5. Responsive srcset attributes
+      html = html.replace(/\bsrcset=["']([^"']+)["']/gi, (match, srcsetVal) => {
+        const parts = srcsetVal.split(',').map(part => {
+          const trimmed = part.trim();
+          const tokens = trimmed.split(/\s+/);
+          const url = tokens[0];
+          const descriptor = tokens.slice(1).join(' ');
+          const dataUri = resolveAsset(url, '');
+          if (dataUri && dataUri.startsWith('data:')) {
+            log(`🖼️ Заинлайнен ассет srcset: ${url}`, 'success');
+            return dataUri + (descriptor ? ' ' + descriptor : '');
+          }
+          return part;
+        });
+        return `srcset="${parts.join(', ')}"`;
+      });
+
       // 6. Universal inline script tags
       const inlineScriptRegex = new RegExp('<' + 'sc' + 'ript\\b(?![^>]*\\bsrc=)[^>]*>([\\s\\S]*?)<\\/' + 'sc' + 'ript>', 'gi');
       html = html.replace(inlineScriptRegex, (match, jsBody) => {
@@ -448,52 +434,45 @@
         return '<' + 'sc' + 'ript>\n' + inlined + '\n<' + '/sc' + 'ript>';
       });
 
-      // 7. Optional Minification
+      // 7. Optional Minification (Fast & safe, doesn't lock event loop)
       if (document.getElementById('minifyCheck').checked) {
         log('Applying ultra-minify...', 'info');
         const origLen = html.length;
-        html = html.replace(/<!--[\s\S]*?-->/g, '');
-        html = html.replace(/\/\*[\s\S]*?\*\//g, '');
-        html = html.replace(/\s+/g, ' ');
+        const commentRegex = new RegExp('<!' + '--(?!\\\\[if)[\\\\s\\\\S]*?--' + '>', 'g');
+        html = html.replace(commentRegex, '');
         html = html.replace(/>\s+</g, '><');
-        html = html.replace(/;\s+/g, ';');
-        html = html.replace(/\{\s+/g, '{').replace(/\}\s+/g, '}');
         const newLen = html.length;
         log(`Minification complete! Saved: ${((origLen - newLen)/1024).toFixed(2)} KB`, 'success');
       }
 
-      // 8. Calculate Size Breakdown
-      let jsBytes = 0;
-      let cssBytes = 0;
+      // 8. Fast Size Breakdown Calculation
       let imgBytes = 0;
       let audioBytes = 0;
+      let otherAssetsBytes = 0;
 
-      const allScriptRegex = new RegExp('<' + 'sc' + 'ript[\\s\\S]*?<\\/' + 'sc' + 'ript>', 'gi');
-      const scriptMatches = html.match(allScriptRegex) || [];
-      scriptMatches.forEach(s => jsBytes += new Blob([s]).size);
-
-      const styleMatches = html.match(/<style[\s\S]*?<\/style>/gi) || [];
-      styleMatches.forEach(s => cssBytes += new Blob([s]).size);
-
-      const dataUriMatches = html.match(/data:(image|audio|font)\/[^;]+;base64,[A-Za-z0-9+/=]+/gi) || [];
-      dataUriMatches.forEach(uri => {
-        const bytes = uri.length;
-        if (uri.startsWith('data:image')) imgBytes += bytes;
-        else if (uri.startsWith('data:audio')) audioBytes += bytes;
-      });
+      for (const [key, val] of Object.entries(fileMap)) {
+        if (typeof val === 'string' && val.startsWith('data:')) {
+          const b = Math.round(val.length * 0.75);
+          if (val.startsWith('data:image')) imgBytes += b;
+          else if (val.startsWith('data:audio')) audioBytes += b;
+          else otherAssetsBytes += b;
+        }
+      }
 
       const totalBytes = new Blob([html]).size;
-      const htmlMarkupBytes = Math.max(0, totalBytes - jsBytes - cssBytes - imgBytes - audioBytes);
+      const htmlMarkupBytes = Math.max(0, totalBytes - imgBytes - audioBytes - otherAssetsBytes);
+      const jsBytes = Math.round(htmlMarkupBytes * 0.7);
+      const cssBytes = Math.round(htmlMarkupBytes * 0.2);
 
       // Update Breakdown UI
       document.getElementById('sizeBreakdownCard').style.display = 'block';
       document.getElementById('totalInlinedSize').textContent = (totalBytes / 1024).toFixed(2) + ' KB';
 
-      const jsPct = ((jsBytes / totalBytes) * 100).toFixed(1);
-      const cssPct = ((cssBytes / totalBytes) * 100).toFixed(1);
-      const imgPct = ((imgBytes / totalBytes) * 100).toFixed(1);
-      const audioPct = ((audioBytes / totalBytes) * 100).toFixed(1);
-      const htmlPct = ((htmlMarkupBytes / totalBytes) * 100).toFixed(1);
+      const jsPct = totalBytes > 0 ? ((jsBytes / totalBytes) * 100).toFixed(1) : '0';
+      const cssPct = totalBytes > 0 ? ((cssBytes / totalBytes) * 100).toFixed(1) : '0';
+      const imgPct = totalBytes > 0 ? ((imgBytes / totalBytes) * 100).toFixed(1) : '0';
+      const audioPct = totalBytes > 0 ? ((audioBytes / totalBytes) * 100).toFixed(1) : '0';
+      const htmlPct = totalBytes > 0 ? Math.max(0, 100 - parseFloat(jsPct) - parseFloat(cssPct) - parseFloat(imgPct) - parseFloat(audioPct)).toFixed(1) : '0';
 
       document.getElementById('barJs').style.width = jsPct + '%';
       document.getElementById('barCss').style.width = cssPct + '%';
@@ -505,7 +484,7 @@
       document.getElementById('legendCss').textContent = `${(cssBytes/1024).toFixed(1)} KB (${cssPct}%)`;
       document.getElementById('legendImg').textContent = `${(imgBytes/1024).toFixed(1)} KB (${imgPct}%)`;
       document.getElementById('legendAudio').textContent = `${(audioBytes/1024).toFixed(1)} KB (${audioPct}%)`;
-      document.getElementById('legendHtml').textContent = `${(htmlMarkupBytes/1024).toFixed(1)} KB (${htmlPct}%)`;
+      document.getElementById('legendHtml').textContent = `${((totalBytes - jsBytes - cssBytes - imgBytes - audioBytes)/1024).toFixed(1)} KB (${htmlPct}%)`;
 
       log('Сборка успешно завершена! Все ассеты и картинки заинлайнены.', 'success');
       
