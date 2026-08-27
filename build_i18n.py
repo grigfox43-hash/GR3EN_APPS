@@ -20,8 +20,9 @@ html_files = [f for f in glob.glob('*.html') if not f.endswith('_en.html') and f
 for html_file in html_files:
     with open(html_file, 'r', encoding='utf-8') as f:
         raw_html = f.read()
-        clean_html = re.sub(r'<script\b[^>]*>[\s\S]*?</script>', '', raw_html, flags=re.IGNORECASE)
-        clean_html = re.sub(r'<style\b[^>]*>[\s\S]*?</style>', '', clean_html, flags=re.IGNORECASE)
+        clean_html = re.sub(r'<script[\s\S]*?<\/script>', '', raw_html, flags=re.IGNORECASE)
+        clean_html = re.sub(r'<script[\s\S]*?<\/body>', '</body>', clean_html, flags=re.IGNORECASE)
+        clean_html = re.sub(r'<style[\s\S]*?<\/style>', '', clean_html, flags=re.IGNORECASE)
         parser.feed(clean_html)
 
 ru_strings = sorted(list(parser.texts))

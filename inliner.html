@@ -210,7 +210,7 @@
         for (let [filename, zipEntry] of Object.entries(loadedZip.files)) {
           if (zipEntry.dir) continue;
           
-          let cleanName = filename.replace(/^\//, '').replace(/\\/g, '/');
+          let cleanName = filename.replace(/\\/g, '/').replace(/^\.?\/+/, '');
           
           // Strip basePrefix if present
           let relativeName = cleanName;
@@ -226,12 +226,27 @@
             const base64 = await zipEntry.async("base64");
             const mime = getMimeType(relativeName);
             const dataUri = `data:${mime};base64,${base64}`;
+            
+            // Register all possible relative variations & suffixes
             fileMap[relativeName] = dataUri;
             fileMap[cleanName] = dataUri;
+            fileMap[relativeName.toLowerCase()] = dataUri;
+            fileMap[cleanName.toLowerCase()] = dataUri;
+            fileMap[baseName] = dataUri;
+            fileMap[baseName.toLowerCase()] = dataUri;
+
+            // Register sub-path slices (e.g. images/bg.png from assets/images/bg.png)
+            const parts = relativeName.split('/');
+            for (let i = 1; i < parts.length; i++) {
+              const subSlice = parts.slice(i).join('/');
+              if (!fileMap[subSlice]) fileMap[subSlice] = dataUri;
+              if (!fileMap[subSlice.toLowerCase()]) fileMap[subSlice.toLowerCase()] = dataUri;
+            }
           } else {
             const text = await zipEntry.async("string");
             fileMap[relativeName] = text;
             fileMap[cleanName] = text;
+            fileMap[baseName] = text;
           }
         }
 
@@ -267,16 +282,12 @@
 
       let clean = refPath.split('?')[0].split('#')[0].trim().replace(/^['"]|['"]$/g, '');
       try { clean = decodeURIComponent(clean); } catch(e){}
-      clean = clean.replace(/\\/g, '/');
+      clean = clean.replace(/\\/g, '/').replace(/^\.?\/+/, '');
 
       // 1. Direct match
       if (fileMap[clean]) return fileMap[clean];
 
-      // 2. Remove leading ./ or /
-      const noDotSlash = clean.replace(/^\.?\//, '');
-      if (fileMap[noDotSlash]) return fileMap[noDotSlash];
-
-      // 3. Resolve relative to contextDir (e.g. if inside css/style.css)
+      // 2. Resolve relative to contextDir (e.g. if inside css/style.css)
       if (contextDir) {
         let combined = contextDir.replace(/\/?$/, '/') + clean;
         const parts = combined.split('/');
@@ -293,17 +304,18 @@
         if (fileMap[resolvedPath]) return fileMap[resolvedPath];
       }
 
-      // 4. Case-insensitive lookup
-      const lowerClean = noDotSlash.toLowerCase();
-      for (const k of Object.keys(fileMap)) {
-        if (k.toLowerCase() === lowerClean) return fileMap[k];
-      }
+      // 3. Case-insensitive lookup
+      const lowerClean = clean.toLowerCase();
+      if (fileMap[lowerClean]) return fileMap[lowerClean];
 
-      // 5. Basename fallback (if filename is unique in archive)
+      // 4. Basename fallback (matches filename anywhere in archive)
       const base = clean.split('/').pop();
-      if (rawFileMap[base] && rawFileMap[base].length === 1) {
-        const fullRel = rawFileMap[base][0];
-        if (fileMap[fullRel]) return fileMap[fullRel];
+      if (fileMap[base]) return fileMap[base];
+      const lowerBase = base.toLowerCase();
+      if (fileMap[lowerBase]) return fileMap[lowerBase];
+
+      for (const k of Object.keys(fileMap)) {
+        if (k.split('/').pop().toLowerCase() === lowerBase) return fileMap[k];
       }
 
       return null;
@@ -323,30 +335,33 @@
 
     // Helper to inline all known asset string paths inside a JS string
     function inlineJsAssetStrings(jsContent, contextDir = '') {
-      const assetKeys = Object.keys(fileMap).filter(k => k.match(/\.(png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf)$/i));
       let inlinedJs = jsContent;
 
+      // Pass 1: Replace any string literal ending with media extension
+      const literalRegex = /(["'`])((?:\\.|(?!\1)[^\r\n])+?\.(?:png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf|otf|eot)(?:\?[^"'`\r\n]*)?)\1/gi;
+      inlinedJs = inlinedJs.replace(literalRegex, (match, quote, pathStr) => {
+        const dataUri = resolveAsset(pathStr, contextDir);
+        if (dataUri) {
+          log(`📜 Заинлайнен ассет в JS: ${pathStr.split('?')[0]}`, 'success');
+          return `${quote}${dataUri}${quote}`;
+        }
+        return match;
+      });
+
+      // Pass 2: Iterate all known media assets from fileMap to catch CreateJS manifests and custom object properties
+      const assetKeys = Object.keys(fileMap).filter(k => k.match(/\.(png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf)$/i));
       assetKeys.forEach(assetKey => {
         const dataUri = fileMap[assetKey];
         if (!dataUri || !dataUri.startsWith('data:')) return;
 
         const base = assetKey.split('/').pop();
-        const variants = new Set([
-          assetKey,
-          './' + assetKey,
-          '/' + assetKey,
-          base,
-          './' + base
-        ]);
+        const escapedBase = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-        variants.forEach(variant => {
-          const escapedVariant = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const strRegex = new RegExp(`(["'\`])${escapedVariant}(?:\\?[^"'\`]*)?\\1`, 'g');
-          
-          if (strRegex.test(inlinedJs)) {
-            log(`📜 Заинлайнена картинка/ассет в JS: ${variant}`, 'success');
-            inlinedJs = inlinedJs.replace(strRegex, `$1${dataUri}$1`);
-          }
+        // Match string literals ending in this basename: "anything/base.ext" or 'base.ext'
+        const baseLiteralRegex = new RegExp(`(["'\`])([^"'\\r\\n]*?${escapedBase}(?:\\?[^"'\\r\\n]*)?)\\1`, 'gi');
+        inlinedJs = inlinedJs.replace(baseLiteralRegex, (match, quote, matchedPath) => {
+          log(`📜 Заинлайнена картинка в JS: ${matchedPath.split('?')[0]}`, 'success');
+          return `${quote}${dataUri}${quote}`;
         });
       });
 
@@ -364,8 +379,9 @@
       
       log('Начинаю процесс полной сборки (Inlining)...', 'info');
 
-      // 1. Inline CSS Files (<link rel="stylesheet" href="...">)
-      html = html.replace(/<link[^>]+rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>|<link[^>]+href=["']([^"']+)["'][^>]*rel=["']stylesheet["'][^>]*>/gi, (match, href1, href2) => {
+      // 1. Universal CSS Files (<link rel="stylesheet" href="...">)
+      const linkCssRegex = /<link[^>]+rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>|<link[^>]+href=["']([^"']+)["'][^>]*rel=["']stylesheet["'][^>]*>/gi;
+      html = html.replace(linkCssRegex, (match, href1, href2) => {
         const href = href1 || href2;
         const cssContent = resolveAsset(href, '');
         if (cssContent && typeof cssContent === 'string' && !cssContent.startsWith('data:')) {
@@ -378,28 +394,23 @@
         return match;
       });
 
-      // 2. Inline CSS inside existing <style> tags and inline style attributes
-      html = html.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (match, cssBody) => {
-        const inlined = inlineCssUrls(cssBody, '');
-        return `<style>${inlined}</style>`;
-      });
+      // 2. Universal CSS url() replacement across the entire HTML (handles <style> tags and inline style attributes)
+      html = inlineCssUrls(html, '');
 
-      html = html.replace(/style=["']([^"']+)["']/gi, (match, styleVal) => {
-        const inlined = inlineCssUrls(styleVal, '');
-        return `style="${inlined}"`;
-      });
-
-      // 3. Inline HTML image/media tags (<img src="...">, <source srcset="...">, <link icon>, SVG <image>)
-      html = html.replace(/(<img\b[^>]*\bsrc=["'])([^"']+)(["'][^>]*>)/gi, (match, prefix, src, suffix) => {
-        const dataUri = resolveAsset(src, '');
+      // 3. Universal HTML Attribute Scanner (catches src, source, data-src, href, background, poster, etc.)
+      const htmlAttrRegex = /([a-zA-Z0-9_-]+)=(["][^"'\s;()<>]+\.(?:png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf|otf|eot)(?:\?[^"'\s;<>]*)?["]|['][^"'\s;()<>]+\.(?:png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf|otf|eot)(?:\?[^"'\s;<>]*)?['])/gi;
+      html = html.replace(htmlAttrRegex, (match, attrName, quotedVal) => {
+        const quote = quotedVal[0];
+        const rawVal = quotedVal.slice(1, -1);
+        const dataUri = resolveAsset(rawVal, '');
         if (dataUri) {
-          log(`🖼️ Заинлайнена картинка <img>: ${src.split('?')[0]}`, 'success');
-          return `${prefix}${dataUri}${suffix}`;
+          log(`🖼️ Заинлайнена картинка в HTML [${attrName}]: ${rawVal.split('?')[0]}`, 'success');
+          return `${attrName}=${quote}${dataUri}${quote}`;
         }
-        log(`ПРЕДУПРЕЖДЕНИЕ: Картинка <img> не найдена: ${src}`, 'warn');
         return match;
       });
 
+      // 4. Responsive srcset attributes
       html = html.replace(/\bsrcset=["']([^"']+)["']/gi, (match, srcsetVal) => {
         const parts = srcsetVal.split(',').map(part => {
           const trimmed = part.trim();
@@ -416,52 +427,28 @@
         return `srcset="${parts.join(', ')}"`;
       });
 
-      html = html.replace(/(<input\b[^>]*\bsrc=["'])([^"']+)(["'][^>]*>)/gi, (match, prefix, src, suffix) => {
-        const dataUri = resolveAsset(src, '');
-        if (dataUri) {
-          log(`🖼️ Заинлайнена картинка <input src>: ${src}`, 'success');
-          return `${prefix}${dataUri}${suffix}`;
-        }
-        return match;
-      });
-
-      html = html.replace(/(<(?:svg:)?image\b[^>]*\b(?:href|xlink:href)=["'])([^"']+)(["'][^>]*>)/gi, (match, prefix, href, suffix) => {
-        const dataUri = resolveAsset(href, '');
-        if (dataUri) {
-          log(`🖼️ Заинлайнена SVG картинка: ${href}`, 'success');
-          return `${prefix}${dataUri}${suffix}`;
-        }
-        return match;
-      });
-
-      html = html.replace(/(<link\b[^>]*\bhref=["'])([^"']+)(["'][^>]*\brel=["'](?:shortcut )?icon["'][^>]*>)/gi, (match, prefix, href, suffix) => {
-        const dataUri = resolveAsset(href, '');
-        if (dataUri) return `${prefix}${dataUri}${suffix}`;
-        return match;
-      });
-
-      // 4. Inline JS Files
-      const scriptSrcRegex = new RegExp('<script[^>]+src=["\']([^"\']+)["\'][^>]*>[\\s\\S]*?<\\/' + 'script>', 'gi');
+      // 5. Universal JS Files
+      const scriptSrcRegex = new RegExp('<' + 'sc' + 'ript[^>]+src=["\']([^"\']+)["\'][^>]*>[\\s\\S]*?<\\/' + 'sc' + 'ript>', 'gi');
       html = html.replace(scriptSrcRegex, (match, src) => {
         const jsContent = resolveAsset(src, '');
         if (jsContent && typeof jsContent === 'string' && !jsContent.startsWith('data:')) {
           const jsDir = src.includes('/') ? src.substring(0, src.lastIndexOf('/') + 1) : '';
           const inlinedJs = inlineJsAssetStrings(jsContent, jsDir);
           log(`Заинлайнен файл JS: ${src}`, 'success');
-          return '<' + 'script>\n/* Inlined: ' + src + ' */\n' + inlinedJs + '\n<' + '/script>';
+          return '<' + 'sc' + 'ript>\n/* Inlined: ' + src + ' */\n' + inlinedJs + '\n<' + '/sc' + 'ript>';
         }
         log(`ПРЕДУПРЕЖДЕНИЕ: JS файл не найден в архиве: ${src}`, 'warn');
         return match;
       });
 
-      // 5. Inline asset strings inside existing inline tags
-      const inlineScriptRegex = new RegExp('<script\\b(?![^>]*\\bsrc=)[^>]*>([\\s\\S]*?)<\\/' + 'script>', 'gi');
+      // 6. Universal inline script tags
+      const inlineScriptRegex = new RegExp('<' + 'sc' + 'ript\\b(?![^>]*\\bsrc=)[^>]*>([\\s\\S]*?)<\\/' + 'sc' + 'ript>', 'gi');
       html = html.replace(inlineScriptRegex, (match, jsBody) => {
         const inlined = inlineJsAssetStrings(jsBody, '');
-        return '<' + 'script>\n' + inlined + '\n<' + '/script>';
+        return '<' + 'sc' + 'ript>\n' + inlined + '\n<' + '/sc' + 'ript>';
       });
 
-      // 6. Optional Minification
+      // 7. Optional Minification
       if (document.getElementById('minifyCheck').checked) {
         log('Применяю ультра-сжатие (Minify)...', 'info');
         const origLen = html.length;
@@ -475,13 +462,13 @@
         log(`Сжатие завершено! Сэкономлено: ${((origLen - newLen)/1024).toFixed(2)} KB`, 'success');
       }
 
-      // 7. Calculate Size Breakdown
+      // 8. Calculate Size Breakdown
       let jsBytes = 0;
       let cssBytes = 0;
       let imgBytes = 0;
       let audioBytes = 0;
 
-      const allScriptRegex = new RegExp('<script[\\s\\S]*?<\\/' + 'script>', 'gi');
+      const allScriptRegex = new RegExp('<' + 'sc' + 'ript[\\s\\S]*?<\\/' + 'sc' + 'ript>', 'gi');
       const scriptMatches = html.match(allScriptRegex) || [];
       scriptMatches.forEach(s => jsBytes += new Blob([s]).size);
 
