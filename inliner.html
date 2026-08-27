@@ -55,14 +55,10 @@
           <aside class="tool-sidebar">
             <h3 style="margin-bottom: 1.5rem; color: var(--color-primary); font-family: var(--font-display); font-size: 1.8rem;">ЗАГРУЗКА</h3>
             
-            <div id="dropzone" class="dropzone" style="min-height: 130px; padding: 1rem; border-width: 1px; text-align: center; cursor: pointer;">
-              <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">Перетащите <b>ZIP архив</b> или <b>папку</b> с проектом сюда</p>
-              <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.6rem;">
-                <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); document.getElementById('zipInput').click();">Выбрать ZIP</button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); document.getElementById('folderInput').click();">Выбрать папку</button>
-              </div>
-              <input type="file" id="zipInput" accept=".zip" style="display:none;">
-              <input type="file" id="folderInput" webkitdirectory directory style="display:none;">
+            <div id="dropzone" class="dropzone" style="min-height: 120px; padding: 1.5rem 1rem; border-width: 1px; text-align: center; cursor: pointer;">
+              <p style="font-size: 1rem; margin-bottom: 0.4rem;">Перетащите <b>ZIP архив(ы)</b> или <b>папку</b> сюда</p>
+              <span style="font-size: 0.8rem; color: var(--color-text-muted);">или нажмите для выбора файлов (поддерживается сразу несколько архивов)</span>
+              <input type="file" id="zipInput" accept=".zip,application/zip,application/x-zip-compressed" multiple style="display:none;">
             </div>
             
             <div style="margin-top: 1.5rem; color: #fff;">
@@ -139,7 +135,7 @@
 
             <h3 style="color: #fff; margin-bottom: 1rem; font-family: var(--font-display); font-size: 1.8rem;">ЛОГ СБОРКИ</h3>
             <div id="logBox" class="log-box notranslate" translate="no">
-              <div class="log-entry log-info"><span class="log-icon">></span><span class="log-text">Готов к работе. Загрузите ZIP архив.</span></div>
+              <div class="log-entry log-info"><span class="log-icon">></span><span class="log-text">Готов к работе. Загрузите один или несколько ZIP архивов.</span></div>
             </div>
           </div>
         </div>
@@ -151,14 +147,11 @@
   <script>
     const dropzone = document.getElementById('dropzone');
     const zipInput = document.getElementById('zipInput');
-    const folderInput = document.getElementById('folderInput');
     const btnProcess = document.getElementById('btnProcess');
     const downloadLink = document.getElementById('downloadLink');
     const logBox = document.getElementById('logBox');
 
-    let fileMap = {};
-    let rawFileMap = {};
-    let basePrefix = '';
+    let loadedProjects = []; // Array of { name, fileMap, fileCount }
 
     function log(msg, type = 'info') {
       const icons = { info: '>', success: '✓', warn: '⚠', error: '✕' };
@@ -169,6 +162,7 @@
       logBox.scrollTop = logBox.scrollHeight;
     }
 
+    dropzone.addEventListener('click', () => zipInput.click());
     dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
     dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
     dropzone.addEventListener('drop', async (e) => {
@@ -182,37 +176,23 @@
           logBox.innerHTML = '';
           log(`Чтение папки: ${firstEntry.name}...`, 'info');
           const scannedFiles = await readDirectoryEntry(firstEntry, firstEntry.name);
-          return processRawFiles(scannedFiles);
+          const proj = await processFolderFiles(scannedFiles, firstEntry.name);
+          if (proj) {
+            loadedProjects = [proj];
+            onProjectsLoaded();
+          }
+          return;
         }
       }
 
       if (e.dataTransfer.files.length) {
-        const first = e.dataTransfer.files[0];
-        if (first.name.toLowerCase().endsWith('.zip')) {
-          handleZip(first);
-        } else {
-          // Multiple dropped files or single file
-          const scanned = [];
-          for (const f of e.dataTransfer.files) {
-            const rel = f.webkitRelativePath || f.name;
-            scanned.push({ path: rel, file: f });
-          }
-          processRawFiles(scanned);
-        }
+        handleIncomingFiles(Array.from(e.dataTransfer.files));
       }
     });
 
     zipInput.addEventListener('change', (e) => {
-      if (e.target.files.length) handleZip(e.target.files[0]);
-    });
-
-    folderInput.addEventListener('change', (e) => {
       if (e.target.files.length) {
-        const scanned = [];
-        for (const f of e.target.files) {
-          scanned.push({ path: f.webkitRelativePath || f.name, file: f });
-        }
-        processRawFiles(scanned);
+        handleIncomingFiles(Array.from(e.target.files));
       }
     });
 
@@ -246,27 +226,114 @@
       return files;
     }
 
-    async function processRawFiles(scannedFiles) {
+    async function handleIncomingFiles(files) {
       logBox.innerHTML = '';
-      log(`Обработка ${scannedFiles.length} файлов из папки...`, 'info');
+      const zipFiles = files.filter(f => f.name.toLowerCase().endsWith('.zip'));
+
+      if (zipFiles.length > 0) {
+        log(`Загрузка ${zipFiles.length} ZIP архив(ов)...`, 'info');
+        loadedProjects = [];
+        for (let i = 0; i < zipFiles.length; i++) {
+          const zf = zipFiles[i];
+          const proj = await parseZipFile(zf, i + 1, zipFiles.length);
+          if (proj) loadedProjects.push(proj);
+        }
+        onProjectsLoaded();
+      } else {
+        // Individual files dropped
+        const scanned = files.map(f => ({ path: f.webkitRelativePath || f.name, file: f }));
+        const proj = await processFolderFiles(scanned, 'banner');
+        if (proj) {
+          loadedProjects = [proj];
+          onProjectsLoaded();
+        }
+      }
+    }
+
+    async function parseZipFile(file, index, total) {
+      const projName = file.name.replace(/\.zip$/i, '');
       try {
-        fileMap = {};
-        rawFileMap = {};
-
-        const paths = scannedFiles.map(s => s.path);
-        let indexEntryName = paths.find(f => f.toLowerCase() === 'index.html' || f.toLowerCase().endsWith('/index.html'));
-        if (!indexEntryName) {
-          indexEntryName = paths.find(f => f.toLowerCase().endsWith('.html'));
-        }
+        const loadedZip = await JSZip.loadAsync(file);
+        const fileMap = {};
+        const rawFileMap = {};
+        const entries = Object.keys(loadedZip.files).filter(f => !loadedZip.files[f].dir);
+        let indexEntryName = entries.find(f => f.toLowerCase() === 'index.html' || f.toLowerCase().endsWith('/index.html')) || entries.find(f => f.toLowerCase().endsWith('.html'));
 
         if (!indexEntryName) {
-          return log('ОШИБКА: HTML файл не найден!', 'error');
+          log(`⚠ [${index}/${total}] В архиве ${file.name} не найден HTML файл!`, 'warn');
+          return null;
         }
 
-        basePrefix = '';
+        let basePrefix = '';
         if (indexEntryName.includes('/')) {
           basePrefix = indexEntryName.substring(0, indexEntryName.lastIndexOf('/') + 1);
-          log(`Обнаружена корневая папка проекта: ${basePrefix}`, 'info');
+        }
+
+        let fileCount = 0;
+        for (let [filename, zipEntry] of Object.entries(loadedZip.files)) {
+          if (zipEntry.dir) continue;
+          fileCount++;
+          let cleanName = filename.replace(/\\/g, '/').replace(/^\.?\/+/, '');
+          let relativeName = cleanName;
+          if (basePrefix && cleanName.startsWith(basePrefix)) {
+            relativeName = cleanName.substring(basePrefix.length);
+          }
+          const baseName = relativeName.split('/').pop();
+          if (!rawFileMap[baseName]) rawFileMap[baseName] = [];
+          rawFileMap[baseName].push(relativeName);
+
+          if (relativeName.match(/\.(png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|otf|mp3|wav|ogg|m4a|aac|mp4|webm)$/i)) {
+            const base64 = await zipEntry.async("base64");
+            const mime = getMimeType(relativeName);
+            const dataUri = `data:${mime};base64,${base64}`;
+
+            fileMap[relativeName] = dataUri;
+            fileMap[cleanName] = dataUri;
+            fileMap[relativeName.toLowerCase()] = dataUri;
+            fileMap[cleanName.toLowerCase()] = dataUri;
+            fileMap[baseName] = dataUri;
+            fileMap[baseName.toLowerCase()] = dataUri;
+
+            const parts = relativeName.split('/');
+            for (let i = 1; i < parts.length; i++) {
+              const subSlice = parts.slice(i).join('/');
+              if (!fileMap[subSlice]) fileMap[subSlice] = dataUri;
+              if (!fileMap[subSlice.toLowerCase()]) fileMap[subSlice.toLowerCase()] = dataUri;
+            }
+          } else {
+            const text = await zipEntry.async("string");
+            fileMap[relativeName] = text;
+            fileMap[cleanName] = text;
+            fileMap[baseName] = text;
+            if (filename === indexEntryName || cleanName === indexEntryName || relativeName === indexEntryName || relativeName.toLowerCase() === 'index.html') {
+              fileMap['index.html'] = text;
+            }
+          }
+        }
+
+        log(`📦 [${index}/${total}] Архив "${file.name}" загружен (${fileCount} файлов).`, 'success');
+        return { name: projName, fileMap, fileCount };
+      } catch (e) {
+        log(`✕ Ошибка чтения архива "${file.name}": ${e.message}`, 'error');
+        return null;
+      }
+    }
+
+    async function processFolderFiles(scannedFiles, folderName) {
+      try {
+        const fileMap = {};
+        const rawFileMap = {};
+        const paths = scannedFiles.map(s => s.path);
+        let indexEntryName = paths.find(f => f.toLowerCase() === 'index.html' || f.toLowerCase().endsWith('/index.html')) || paths.find(f => f.toLowerCase().endsWith('.html'));
+
+        if (!indexEntryName) {
+          log('ОШИБКА: HTML файл не найден в папке!', 'error');
+          return null;
+        }
+
+        let basePrefix = '';
+        if (indexEntryName.includes('/')) {
+          basePrefix = indexEntryName.substring(0, indexEntryName.lastIndexOf('/') + 1);
         }
 
         for (const item of scannedFiles) {
@@ -300,7 +367,6 @@
               if (!fileMap[subSlice]) fileMap[subSlice] = dataUri;
               if (!fileMap[subSlice.toLowerCase()]) fileMap[subSlice.toLowerCase()] = dataUri;
             }
-            log(`🖼️ Найдено изображение/ассет: ${relativeName}`, 'info');
           } else {
             const text = await item.file.text();
             fileMap[relativeName] = text;
@@ -309,98 +375,29 @@
             if (item.path === indexEntryName || cleanName === indexEntryName || relativeName === indexEntryName || relativeName.toLowerCase() === 'index.html') {
               fileMap['index.html'] = text;
             }
-            log(`📄 Найден текстовый файл: ${relativeName}`, 'info');
           }
         }
 
-        const assetsCount = Object.keys(fileMap).length;
-        log(`Успешно загружено ${assetsCount} файлов. index.html готов к сборке.`, 'success');
-        btnProcess.style.display = 'inline-flex';
-        downloadLink.style.display = 'none';
-        document.getElementById('sizeBreakdownCard').style.display = 'none';
+        log(`📁 Папка "${folderName}" загружена (${scannedFiles.length} файлов).`, 'success');
+        return { name: folderName || 'banner', fileMap, fileCount: scannedFiles.length };
       } catch (e) {
-        log(`ОШИБКА: ${e.message}`, 'error');
+        log(`✕ Ошибка чтения папки: ${e.message}`, 'error');
+        return null;
       }
     }
 
-    async function handleZip(file) {
-      logBox.innerHTML = '';
-      log(`Чтение архива: ${file.name}...`, 'info');
-      
-      try {
-        const loadedZip = await JSZip.loadAsync(file);
-        fileMap = {};
-        rawFileMap = {};
-        
-        const entries = Object.keys(loadedZip.files).filter(f => !loadedZip.files[f].dir);
-        let indexEntryName = entries.find(f => f.toLowerCase() === 'index.html' || f.toLowerCase().endsWith('/index.html'));
-        
-        if (!indexEntryName) {
-          indexEntryName = entries.find(f => f.toLowerCase().endsWith('.html'));
-        }
-
-        if (!indexEntryName) {
-          return log('ОШИБКА: index.html не найден внутри архива!', 'error');
-        }
-
-        basePrefix = '';
-        if (indexEntryName.includes('/')) {
-          basePrefix = indexEntryName.substring(0, indexEntryName.lastIndexOf('/') + 1);
-          log(`Обнаружена корневая папка проекта в архиве: ${basePrefix}`, 'info');
-        }
-
-        for (let [filename, zipEntry] of Object.entries(loadedZip.files)) {
-          if (zipEntry.dir) continue;
-          
-          let cleanName = filename.replace(/\\/g, '/').replace(/^\.?\/+/, '');
-          let relativeName = cleanName;
-          if (basePrefix && cleanName.startsWith(basePrefix)) {
-            relativeName = cleanName.substring(basePrefix.length);
-          }
-
-          const baseName = relativeName.split('/').pop();
-          if (!rawFileMap[baseName]) rawFileMap[baseName] = [];
-          rawFileMap[baseName].push(relativeName);
-
-          if (relativeName.match(/\.(png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|otf|mp3|wav|ogg|m4a|aac|mp4|webm)$/i)) {
-            const base64 = await zipEntry.async("base64");
-            const mime = getMimeType(relativeName);
-            const dataUri = `data:${mime};base64,${base64}`;
-            
-            fileMap[relativeName] = dataUri;
-            fileMap[cleanName] = dataUri;
-            fileMap[relativeName.toLowerCase()] = dataUri;
-            fileMap[cleanName.toLowerCase()] = dataUri;
-            fileMap[baseName] = dataUri;
-            fileMap[baseName.toLowerCase()] = dataUri;
-
-            const parts = relativeName.split('/');
-            for (let i = 1; i < parts.length; i++) {
-              const subSlice = parts.slice(i).join('/');
-              if (!fileMap[subSlice]) fileMap[subSlice] = dataUri;
-              if (!fileMap[subSlice.toLowerCase()]) fileMap[subSlice.toLowerCase()] = dataUri;
-            }
-            log(`🖼️ Найдено изображение/ассет: ${relativeName}`, 'info');
-          } else {
-            const text = await zipEntry.async("string");
-            fileMap[relativeName] = text;
-            fileMap[cleanName] = text;
-            fileMap[baseName] = text;
-            if (filename === indexEntryName || cleanName === indexEntryName || relativeName === indexEntryName || relativeName.toLowerCase() === 'index.html') {
-              fileMap['index.html'] = text;
-            }
-            log(`📄 Найден текстовый файл: ${relativeName}`, 'info');
-          }
-        }
-
-        const assetsCount = Object.keys(fileMap).length;
-        log(`Успешно загружено ${assetsCount} файлов. index.html найден. Готов к сборке.`, 'success');
-        btnProcess.style.display = 'inline-flex';
-        downloadLink.style.display = 'none';
-        document.getElementById('sizeBreakdownCard').style.display = 'none';
-      } catch (e) {
-        log(`ОШИБКА: ${e.message}`, 'error');
+    function onProjectsLoaded() {
+      if (!loadedProjects.length) return;
+      if (loadedProjects.length === 1) {
+        btnProcess.textContent = 'Собрать в один файл';
+        log(`Готов к сборке 1 баннера: "${loadedProjects[0].name}".`, 'info');
+      } else {
+        btnProcess.textContent = `Собрать все баннеры (${loadedProjects.length} шт.)`;
+        log(`Готов к пакетной сборке ${loadedProjects.length} баннеров в один ZIP архив.`, 'info');
       }
+      btnProcess.style.display = 'inline-flex';
+      downloadLink.style.display = 'none';
+      document.getElementById('sizeBreakdownCard').style.display = 'none';
     }
 
     function getMimeType(filename) {
@@ -416,8 +413,7 @@
       return mimes[ext] || 'application/octet-stream';
     }
 
-    // Smart path resolver that handles relative paths, ../, ./, quotes, query params, etc.
-    function resolveAsset(refPath, contextDir = '') {
+    function resolveAssetInMap(refPath, map, contextDir = '') {
       if (!refPath || typeof refPath !== 'string') return null;
       if (refPath.startsWith('data:') || refPath.startsWith('http://') || refPath.startsWith('https://') || refPath.startsWith('blob:') || refPath.startsWith('#') || refPath.startsWith('javascript:')) {
         return null;
@@ -427,10 +423,8 @@
       try { clean = decodeURIComponent(clean); } catch(e){}
       clean = clean.replace(/\\/g, '/').replace(/^\.?\/+/, '');
 
-      // 1. Direct match
-      if (fileMap[clean]) return fileMap[clean];
+      if (map[clean]) return map[clean];
 
-      // 2. Resolve relative to contextDir (e.g. if inside css/style.css)
       if (contextDir) {
         let combined = contextDir.replace(/\/?$/, '/') + clean;
         const parts = combined.split('/');
@@ -444,69 +438,62 @@
           }
         }
         const resolvedPath = resolvedParts.join('/');
-        if (fileMap[resolvedPath]) return fileMap[resolvedPath];
+        if (map[resolvedPath]) return map[resolvedPath];
       }
 
-      // 3. Case-insensitive lookup
       const lowerClean = clean.toLowerCase();
-      if (fileMap[lowerClean]) return fileMap[lowerClean];
+      if (map[lowerClean]) return map[lowerClean];
 
-      // 4. Basename fallback (matches filename anywhere in archive)
       const base = clean.split('/').pop();
-      if (fileMap[base]) return fileMap[base];
+      if (map[base]) return map[base];
       const lowerBase = base.toLowerCase();
-      if (fileMap[lowerBase]) return fileMap[lowerBase];
+      if (map[lowerBase]) return map[lowerBase];
 
-      for (const k of Object.keys(fileMap)) {
-        if (k.split('/').pop().toLowerCase() === lowerBase) return fileMap[k];
+      for (const k of Object.keys(map)) {
+        if (k.split('/').pop().toLowerCase() === lowerBase) return map[k];
       }
 
       return null;
     }
 
-    // Fast Single-Pass CSS URL Replacer (O(N), bounded length, no backtracking)
-    function inlineCssUrls(cssContent, contextDir = '') {
-      const urlRegex = /url\(\s*(?:'([^'\r\n]{1,250})'|"([^"\r\n]{1,250})"|([^'"\)\s\r\n]{1,250}))\s*\)/gi;
-      return cssContent.replace(urlRegex, (match, singleQ, doubleQ, bare) => {
-        const urlVal = singleQ || doubleQ || bare;
-        if (!urlVal) return match;
-        const dataUri = resolveAsset(urlVal, contextDir);
-        if (dataUri) {
-          log(`🎨 Заинлайнен ресурс в CSS: ${urlVal.split('?')[0]}`, 'success');
-          return `url('${dataUri}')`;
-        }
-        return match;
-      });
-    }
-
-    // Fast Single-Pass JS String Literal Replacer (O(N), bounded length, no catastrophic loops)
-    function inlineJsAssetStrings(jsContent, contextDir = '') {
-      const strRegex = /"([^"\r\n]{1,250})"|'([^'\r\n]{1,250})'|`([^`\r\n]{1,250})`/g;
-      return jsContent.replace(strRegex, (match, doubleQ, singleQ, backtick) => {
-        const strVal = doubleQ !== undefined ? doubleQ : (singleQ !== undefined ? singleQ : backtick);
-        const quote = doubleQ !== undefined ? '"' : (singleQ !== undefined ? "'" : '`');
-        
-        const dataUri = resolveAsset(strVal, contextDir);
-        if (dataUri && dataUri.startsWith('data:')) {
-          log(`📜 Заинлайнена картинка/ассет в JS: ${strVal.split('?')[0]}`, 'success');
-          return `${quote}${dataUri}${quote}`;
-        }
-        return match;
-      });
-    }
-
-    btnProcess.addEventListener('click', () => {
+    function inlineSingleProject(project, shouldMinify) {
+      const fileMap = project.fileMap;
       let html = fileMap['index.html'];
       if (!html) {
         const fallback = Object.keys(fileMap).find(k => k.endsWith('index.html') || k.endsWith('.html'));
         if (fallback) html = fileMap[fallback];
       }
+      if (!html) return null;
 
-      if (!html) return log('ОШИБКА: index.html не найден!', 'error');
-      
-      log('Начинаю процесс быстрой сборки (Inlining)...', 'info');
+      function resolveAsset(refPath, contextDir = '') {
+        return resolveAssetInMap(refPath, fileMap, contextDir);
+      }
 
-      // 1. Universal CSS Files (<link rel="stylesheet" href="...">)
+      function inlineCssUrls(cssContent, contextDir = '') {
+        const urlRegex = /url\(\s*(?:'([^'\r\n]{1,250})'|"([^"\r\n]{1,250})"|([^'"\)\s\r\n]{1,250}))\s*\)/gi;
+        return cssContent.replace(urlRegex, (match, singleQ, doubleQ, bare) => {
+          const urlVal = singleQ || doubleQ || bare;
+          if (!urlVal) return match;
+          const dataUri = resolveAsset(urlVal, contextDir);
+          if (dataUri) return `url('${dataUri}')`;
+          return match;
+        });
+      }
+
+      function inlineJsAssetStrings(jsContent, contextDir = '') {
+        const strRegex = /"([^"\r\n]{1,250})"|'([^'\r\n]{1,250})'|`([^`\r\n]{1,250})`/g;
+        return jsContent.replace(strRegex, (match, doubleQ, singleQ, backtick) => {
+          const strVal = doubleQ !== undefined ? doubleQ : (singleQ !== undefined ? singleQ : backtick);
+          const quote = doubleQ !== undefined ? '"' : (singleQ !== undefined ? "'" : '`');
+          const dataUri = resolveAsset(strVal, contextDir);
+          if (dataUri && dataUri.startsWith('data:')) {
+            return `${quote}${dataUri}${quote}`;
+          }
+          return match;
+        });
+      }
+
+      // 1. Universal CSS Files
       const linkCssRegex = /<link[^>]+rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>|<link[^>]+href=["']([^"']+)["'][^>]*rel=["']stylesheet["'][^>]*>/gi;
       html = html.replace(linkCssRegex, (match, href1, href2) => {
         const href = href1 || href2;
@@ -514,10 +501,8 @@
         if (cssContent && typeof cssContent === 'string' && !cssContent.startsWith('data:')) {
           const cssDir = href.includes('/') ? href.substring(0, href.lastIndexOf('/') + 1) : '';
           const inlinedCss = inlineCssUrls(cssContent, cssDir);
-          log(`Заинлайнен файл CSS: ${href}`, 'success');
           return `<style>\n/* Inlined: ${href} */\n${inlinedCss}\n</style>`;
         }
-        log(`ПРЕДУПРЕЖДЕНИЕ: CSS файл не найден в архиве: ${href}`, 'warn');
         return match;
       });
 
@@ -528,17 +513,15 @@
         if (jsContent && typeof jsContent === 'string' && !jsContent.startsWith('data:')) {
           const jsDir = src.includes('/') ? src.substring(0, src.lastIndexOf('/') + 1) : '';
           const inlinedJs = inlineJsAssetStrings(jsContent, jsDir);
-          log(`Заинлайнен файл JS: ${src}`, 'success');
           return '<' + 'sc' + 'ript>\n/* Inlined: ' + src + ' */\n' + inlinedJs + '\n<' + '/sc' + 'ript>';
         }
-        log(`ПРЕДУПРЕЖДЕНИЕ: JS файл не найден в архиве: ${src}`, 'warn');
         return match;
       });
 
-      // 3. Universal CSS url() replacement across the entire HTML (handles style tags and inline style attributes)
+      // 3. Universal CSS url() replacement across HTML
       html = inlineCssUrls(html, '');
 
-      // 4. Universal HTML Attributes specifically pointing to images, audio, or fonts
+      // 4. HTML Attributes (images, audio, fonts)
       const htmlAttrRegex = /([a-zA-Z0-9_-]+)=("([^"\r\n]{1,250}\.(?:png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf|otf|eot)(?:\?[^"\r\n]*)?)"|'([^'\r\n]{1,250}\.(?:png|jpe?g|gif|svg|webp|ico|mp3|wav|ogg|m4a|woff2?|ttf|otf|eot)(?:\?[^'\r\n]*)?)')/gi;
       html = html.replace(htmlAttrRegex, (match, attrName, quoted, doubleQ, singleQ) => {
         const val = doubleQ !== undefined ? doubleQ : singleQ;
@@ -547,13 +530,12 @@
 
         const dataUri = resolveAsset(val, '');
         if (dataUri && dataUri.startsWith('data:')) {
-          log(`🖼️ Заинлайнена картинка в HTML [${attrName}]: ${val.split('?')[0]}`, 'success');
           return `${attrName}=${quote}${dataUri}${quote}`;
         }
         return match;
       });
 
-      // 5. Responsive srcset attributes
+      // 5. Responsive srcset
       html = html.replace(/\bsrcset=["']([^"']+)["']/gi, (match, srcsetVal) => {
         const parts = srcsetVal.split(',').map(part => {
           const trimmed = part.trim();
@@ -562,7 +544,6 @@
           const descriptor = tokens.slice(1).join(' ');
           const dataUri = resolveAsset(url, '');
           if (dataUri && dataUri.startsWith('data:')) {
-            log(`🖼️ Заинлайнен ассет srcset: ${url}`, 'success');
             return dataUri + (descriptor ? ' ' + descriptor : '');
           }
           return part;
@@ -570,14 +551,14 @@
         return `srcset="${parts.join(', ')}"`;
       });
 
-      // 6. Universal inline script tags
+      // 6. Inline script tags
       const inlineScriptRegex = new RegExp('<' + 'sc' + 'ript\\b(?![^>]*\\bsrc=)[^>]*>([\\s\\S]*?)<\\/' + 'sc' + 'ript>', 'gi');
       html = html.replace(inlineScriptRegex, (match, jsBody) => {
         const inlined = inlineJsAssetStrings(jsBody, '');
         return '<' + 'sc' + 'ript>\n' + inlined + '\n<' + '/sc' + 'ript>';
       });
 
-      // 7. Inject CreateJS / PreloadJS Data URI compatibility adapter
+      // 7. Inject CreateJS Data URI adapter
       const createJsAdapter = '<' + 'sc' + 'ript>\n(function(){if(typeof window!=="undefined"){function patchCjs(){if(window.createjs&&createjs.LoadQueue&&!createjs.LoadQueue._dataPatched){createjs.LoadQueue._dataPatched=true;var oldM=createjs.LoadQueue.prototype.loadManifest;createjs.LoadQueue.prototype.loadManifest=function(m,n,b){if(Array.isArray(m)){m.forEach(function(i){if(i&&i.src&&typeof i.src==="string"){if(i.src.indexOf("data:image")===0)i.type="image";else if(i.src.indexOf("data:audio")===0)i.type="sound";}});}return oldM.apply(this,arguments);};var oldF=createjs.LoadQueue.prototype.loadFile;createjs.LoadQueue.prototype.loadFile=function(f,n,b){if(f&&typeof f==="object"&&f.src&&typeof f.src==="string"){if(f.src.indexOf("data:image")===0)f.type="image";else if(f.src.indexOf("data:audio")===0)f.type="sound";}return oldF.apply(this,arguments);};}}patchCjs();document.addEventListener("DOMContentLoaded",patchCjs);window.addEventListener("load",patchCjs);}})();\n<' + '/sc' + 'ript>';
       if (html.includes('</head>')) {
         html = html.replace('</head>', createJsAdapter + '\n</head>');
@@ -587,45 +568,78 @@
         html = createJsAdapter + '\n' + html;
       }
 
-      // 8. Optional Minification (Fast & safe, doesn't lock event loop)
-      if (document.getElementById('minifyCheck').checked) {
-        log('Применяю ультра-сжатие (Minify)...', 'info');
-        const origLen = html.length;
+      // 8. Minification
+      if (shouldMinify) {
         const commentRegex = new RegExp('<!' + '--(?!\\\\[if)[\\\\s\\\\S]*?--' + '>', 'g');
         html = html.replace(commentRegex, '');
         html = html.replace(/>\s+</g, '><');
-        const newLen = html.length;
-        log(`Сжатие завершено! Сэкономлено: ${((origLen - newLen)/1024).toFixed(2)} KB`, 'success');
       }
 
-      // 8. Fast Size Breakdown Calculation
-      let imgBytes = 0;
-      let audioBytes = 0;
-      let otherAssetsBytes = 0;
-
-      for (const [key, val] of Object.entries(fileMap)) {
+      // Metrics
+      let imgBytes = 0, audioBytes = 0, otherBytes = 0;
+      for (const [k, val] of Object.entries(fileMap)) {
         if (typeof val === 'string' && val.startsWith('data:')) {
           const b = Math.round(val.length * 0.75);
           if (val.startsWith('data:image')) imgBytes += b;
           else if (val.startsWith('data:audio')) audioBytes += b;
-          else otherAssetsBytes += b;
+          else otherBytes += b;
         }
       }
-
       const totalBytes = new Blob([html]).size;
-      const htmlMarkupBytes = Math.max(0, totalBytes - imgBytes - audioBytes - otherAssetsBytes);
+      const htmlMarkupBytes = Math.max(0, totalBytes - imgBytes - audioBytes - otherBytes);
       const jsBytes = Math.round(htmlMarkupBytes * 0.7);
       const cssBytes = Math.round(htmlMarkupBytes * 0.2);
 
+      return {
+        name: project.name,
+        html,
+        totalBytes,
+        jsBytes,
+        cssBytes,
+        imgBytes,
+        audioBytes,
+        htmlMarkupBytes
+      };
+    }
+
+    btnProcess.addEventListener('click', async () => {
+      if (!loadedProjects.length) return log('ОШИБКА: Нет загруженных проектов для сборки!', 'error');
+
+      log(`Начинаю процесс сборки (${loadedProjects.length} баннер(ов))...`, 'info');
+      const shouldMinify = document.getElementById('minifyCheck').checked;
+      const results = [];
+
+      let sumJs = 0, sumCss = 0, sumImg = 0, sumAudio = 0, sumTotal = 0, sumHtml = 0;
+
+      for (let i = 0; i < loadedProjects.length; i++) {
+        const proj = loadedProjects[i];
+        log(`🔨 [${i + 1}/${loadedProjects.length}] Инлайнинг баннера "${proj.name}"...`, 'info');
+        const res = inlineProject(proj, shouldMinify);
+        if (res) {
+          results.push(res);
+          sumJs += res.jsBytes;
+          sumCss += res.cssBytes;
+          sumImg += res.imgBytes;
+          sumAudio += res.audioBytes;
+          sumTotal += res.totalBytes;
+          sumHtml += res.htmlMarkupBytes;
+          log(`✓ Баннер "${res.name}" успешно собран (${(res.totalBytes / 1024).toFixed(2)} KB)`, 'success');
+        } else {
+          log(`✕ Ошибка при сборке баннера "${proj.name}"`, 'error');
+        }
+      }
+
+      if (!results.length) return log('ОШИБКА: Не удалось собрать ни один баннер.', 'error');
+
       // Update Breakdown UI
       document.getElementById('sizeBreakdownCard').style.display = 'block';
-      document.getElementById('totalInlinedSize').textContent = (totalBytes / 1024).toFixed(2) + ' KB';
+      document.getElementById('totalInlinedSize').textContent = (sumTotal / 1024).toFixed(2) + ' KB';
 
-      const jsPct = totalBytes > 0 ? ((jsBytes / totalBytes) * 100).toFixed(1) : '0';
-      const cssPct = totalBytes > 0 ? ((cssBytes / totalBytes) * 100).toFixed(1) : '0';
-      const imgPct = totalBytes > 0 ? ((imgBytes / totalBytes) * 100).toFixed(1) : '0';
-      const audioPct = totalBytes > 0 ? ((audioBytes / totalBytes) * 100).toFixed(1) : '0';
-      const htmlPct = totalBytes > 0 ? Math.max(0, 100 - parseFloat(jsPct) - parseFloat(cssPct) - parseFloat(imgPct) - parseFloat(audioPct)).toFixed(1) : '0';
+      const jsPct = sumTotal > 0 ? ((sumJs / sumTotal) * 100).toFixed(1) : '0';
+      const cssPct = sumTotal > 0 ? ((sumCss / sumTotal) * 100).toFixed(1) : '0';
+      const imgPct = sumTotal > 0 ? ((sumImg / sumTotal) * 100).toFixed(1) : '0';
+      const audioPct = sumTotal > 0 ? ((sumAudio / sumTotal) * 100).toFixed(1) : '0';
+      const htmlPct = sumTotal > 0 ? Math.max(0, 100 - parseFloat(jsPct) - parseFloat(cssPct) - parseFloat(imgPct) - parseFloat(audioPct)).toFixed(1) : '0';
 
       document.getElementById('barJs').style.width = jsPct + '%';
       document.getElementById('barCss').style.width = cssPct + '%';
@@ -633,19 +647,35 @@
       document.getElementById('barAudio').style.width = audioPct + '%';
       document.getElementById('barHtml').style.width = htmlPct + '%';
 
-      document.getElementById('legendJs').textContent = `${(jsBytes/1024).toFixed(1)} KB (${jsPct}%)`;
-      document.getElementById('legendCss').textContent = `${(cssBytes/1024).toFixed(1)} KB (${cssPct}%)`;
-      document.getElementById('legendImg').textContent = `${(imgBytes/1024).toFixed(1)} KB (${imgPct}%)`;
-      document.getElementById('legendAudio').textContent = `${(audioBytes/1024).toFixed(1)} KB (${audioPct}%)`;
-      document.getElementById('legendHtml').textContent = `${((totalBytes - jsBytes - cssBytes - imgBytes - audioBytes)/1024).toFixed(1)} KB (${htmlPct}%)`;
+      document.getElementById('legendJs').textContent = `${(sumJs/1024).toFixed(1)} KB (${jsPct}%)`;
+      document.getElementById('legendCss').textContent = `${(sumCss/1024).toFixed(1)} KB (${cssPct}%)`;
+      document.getElementById('legendImg').textContent = `${(sumImg/1024).toFixed(1)} KB (${imgPct}%)`;
+      document.getElementById('legendAudio').textContent = `${(sumAudio/1024).toFixed(1)} KB (${audioPct}%)`;
+      document.getElementById('legendHtml').textContent = `${(sumHtml/1024).toFixed(1)} KB (${htmlPct}%)`;
 
-      log('Сборка успешно завершена! Все ассеты и картинки заинлайнены.', 'success');
-      
-      const blob = new Blob([html], { type: 'text/html' });
-      downloadLink.href = URL.createObjectURL(blob);
-      downloadLink.download = 'index_inlined.html';
-      downloadLink.style.display = 'inline-flex';
-      btnProcess.style.display = 'none';
+      if (results.length === 1) {
+        const single = results[0];
+        const blob = new Blob([single.html], { type: 'text/html' });
+        downloadLink.href = URL.createObjectURL(blob);
+        downloadLink.download = `${single.name}_inlined.html`;
+        downloadLink.textContent = `Скачать ${single.name}.html`;
+        downloadLink.style.display = 'inline-flex';
+        btnProcess.style.display = 'none';
+        log(`Сборка завершена! Нажмите кнопку ниже для скачивания файла.`, 'success');
+      } else {
+        log(`Упаковка ${results.length} HTML файлов в единый ZIP архив...`, 'info');
+        const bundleZip = new JSZip();
+        for (const r of results) {
+          bundleZip.file(`${r.name}.html`, r.html);
+        }
+        const bundleBlob = await bundleZip.generateAsync({ type: 'blob' });
+        downloadLink.href = URL.createObjectURL(bundleBlob);
+        downloadLink.download = 'inlined_banners_bundle.zip';
+        downloadLink.textContent = `📦 Скачать архив (${results.length} баннеров в одном ZIP)`;
+        downloadLink.style.display = 'inline-flex';
+        btnProcess.style.display = 'none';
+        log(`🎉 Пакетная сборка завершена! Все ${results.length} баннеров упакованы в inlined_banners_bundle.zip.`, 'success');
+      }
     });
   </script>
 
